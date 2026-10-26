@@ -5,5 +5,5 @@
   "sha256": "0fd0f2f78cda6c2314b292afa44c51a8e61a634fcba4de69fdfb04aeac1429aa",
   "size": 414570,
   "notes": "Lumen 7.1: trending and Lumen Window work through Lumen's private key service; no API keys ship in the app.",
-  "keyProxy": ""
+  "keyProxy": "https://lumen-keys.spamcircle68.workers.dev/"
 }
