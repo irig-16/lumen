@@ -79,6 +79,7 @@ appops set $L SYSTEM_ALERT_WINDOW allow
 appops set $L WRITE_SETTINGS allow
 pm grant $L android.permission.WRITE_SECURE_SETTINGS 2>/dev/null
 pm grant $L android.permission.RECORD_AUDIO 2>/dev/null
+pm grant $L android.permission.DUMP 2>/dev/null   # heat guard: exact CPU/GPU temperatures
 pm grant $L com.android.providers.tv.permission.READ_EPG_DATA 2>/dev/null
 cmd notification allow_listener $L/$L.MediaWatch >/dev/null 2>&1 || \
   settings put secure enabled_notification_listeners "$L/$L.MediaWatch"
