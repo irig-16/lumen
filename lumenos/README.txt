@@ -39,6 +39,18 @@ BEFORE YOU START (once)
      (Device Manager > the device > Update driver > Browse > the
      unzipped usb_driver folder).
 
+NEW: THE APK CAN SET ITSELF UP
+  You no longer have to use a PC. Install Lumen.apk (USB stick or adb), open
+  it, and tap through "Setting up LumenOS": it makes itself the home screen and
+  turns on updates, Continue Watching, the heat warning, brightness and voice.
+  Trending, weather and the picture engine work right away, and Lumen updates
+  itself after that.
+
+  Two things no app may grant itself (ad blocking, 0.5x animations, exact
+  temperatures): run LumenOS-Unlock.bat once from a PC (5 seconds) and Lumen
+  keeps them on by itself forever. Removing bloatware and forcing 720p still
+  need LumenOS-Install.bat (below), as Android only allows those from a PC.
+
 INSTALL
   Double-click LumenOS-Install.bat and type the IP address, or USB.
   The first time, it downloads Google's adb tool (about 7 MB).

@@ -21,6 +21,7 @@ Developed with ♥ by Radirig. Open source under the MIT licence.
 |---|---|
 | LumenOS-Install.bat | Removes bloatware and ads, makes Lumen the home screen, renders the UI at the panel's real 720p, ad-blocking DNS |
 | LumenOS-Update.bat | Installs a new Lumen by cable or Wi-Fi and gives it its one-time access |
+| LumenOS-Unlock.bat | The optional 5-second grant: lets Lumen keep 0.5x animations, ad blocking and exact temperatures applied by itself |
 | LumenOS-Logo.bat | Replaces the MAGCUBIC boot logo and boot animation with Lumen's, or keeps the Lumen logo on until the intro |
 | LumenOS-Speed.bat | Memory tuning, cached-app freezer, holds back apps that start themselves at boot, startup timeline |
 | LumenOS-Keystone.bat | Tunes how steady the automatic keystone is |
@@ -30,11 +31,11 @@ Developed with ♥ by Radirig. Open source under the MIT licence.
 See [`lumenos/README.txt`](lumenos/README.txt) and [`app/README.md`](app/README.md) for the details.
 
 ## Install on a projector
-1. On the projector: Settings → Device Preferences → About → press **Build** 7 times, then turn on **USB debugging** in Developer options.
-2. Download **LumenOS-toolkit.zip** from the latest [release](../../releases/latest), unzip it on a Windows PC.
-3. Run **LumenOS-Install.bat** and type the projector's IP address (or `USB` for a USB-A to USB-A cable).
+**The quick way (just the app).** Install `Lumen.apk` from the latest [release](../../releases/latest) — copy it to a USB stick and open it with the projector's file manager, or `adb install Lumen.apk`. On first launch Lumen shows **Setting up LumenOS**: a few taps make it the home screen and switch on updates, Continue Watching, the overheating warning, brightness and voice. Trending, weather and the picture engine work straight away. Lumen then updates itself over the air.
 
-From then on Lumen updates itself: when a new version is published, the projector's home screen asks **Update now / Later**.
+**The 5-second unlock (optional, once).** A couple of things Android never lets any app grant itself — system-wide ad blocking, 0.5x animations and exact temperatures. To hand those to Lumen (which then keeps them applied through every update), run **LumenOS-Unlock.bat** once from a Windows PC: turn on USB debugging on the projector (Settings → About → press Build 7 times → Developer options), then double-click it and type the projector's IP or `USB`.
+
+**The full clean (optional).** **LumenOS-Install.bat** additionally removes the bloatware and the stock launcher and forces 720p rendering — the parts that need a computer. Download **LumenOS-toolkit.zip** from the latest release for all the `.bat` tools.
 
 ## How updates work
 `ota/update.json` on `main` is the update channel. It names the newest version and points at the signed `ota/Lumen.apk`:

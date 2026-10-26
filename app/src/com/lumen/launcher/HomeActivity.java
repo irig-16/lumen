@@ -199,6 +199,13 @@ public class HomeActivity extends Activity {
         super.onCreate(state);
         store = new AppStore(this);
         if (!store.has(S_24H)) store.setBool(S_24H, DateFormat.is24HourFormat(this));
+        SelfSetup.applyHeld(this);                 // re-apply what Lumen is allowed to, after every update
+        if (!store.getBool("setup_done", false)) {
+            try {
+                startActivity(new Intent(this, SetupActivity.class));
+            } catch (RuntimeException ignored) {
+            }
+        }
         measure();
 
         root = new FrameLayout(this);
@@ -1409,9 +1416,12 @@ public class HomeActivity extends Activity {
         } });
         labels.add("Unhide apps  (" + hidden.size() + " hidden)");
         actions.add(new Runnable() { public void run() { showUnhide(); } });
-        labels.add(currentHome == null ? "Lumen is your default home ✓"
-                : "Make Lumen the default home  (now: " + currentHome + ")");
-        actions.add(new Runnable() { public void run() { openSettings(Settings.ACTION_HOME_SETTINGS); } });
+        int ready = 0, total = 0;
+        for (SelfSetup.Item it : SelfSetup.checklist(this)) { total++; if (it.done) ready++; }
+        labels.add("Set up LumenOS  ·  " + ready + " of " + total + " ready");
+        actions.add(new Runnable() { public void run() {
+            try { startActivity(new Intent(HomeActivity.this, SetupActivity.class)); } catch (RuntimeException ignored) { }
+        } });
         labels.add("Reload app list");
         actions.add(new Runnable() { public void run() {
             reloadApps();

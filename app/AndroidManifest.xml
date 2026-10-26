@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.lumen.launcher"
-    android:versionCode="19"
-    android:versionName="7.2">
+    android:versionCode="20"
+    android:versionName="7.3">
 
     <!-- Target 30: the projector's security policy only lets Android 11-level apps reach the picture processor -->
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="30" />
@@ -61,6 +61,14 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".SetupActivity"
+            android:theme="@style/LumenTheme"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|uiMode" />
 
         <activity
             android:name=".SoundActivity"
