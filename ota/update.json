@@ -1,8 +1,9 @@
 {
-  "versionCode": 17,
-  "versionName": "7.0",
+  "versionCode": 18,
+  "versionName": "7.1",
   "url": "https://raw.githubusercontent.com/irig-16/lumen/main/ota/Lumen.apk",
-  "sha256": "da3308fca3e486eb5c62613316ab58acf9b81699452eb7585e7064a5eb07db36",
+  "sha256": "0fd0f2f78cda6c2314b292afa44c51a8e61a634fcba4de69fdfb04aeac1429aa",
   "size": 414570,
-  "notes": "Lumen 7.0: heat guard (warns at 100\u00b0C, cools down at 105\u00b0C, pauses at 110\u00b0C), frees memory when a film starts, and updates itself from GitHub with a prompt on the home screen."
+  "notes": "Lumen 7.1: trending and Lumen Window work through Lumen's private key service; no API keys ship in the app.",
+  "keyProxy": ""
 }
