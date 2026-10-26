@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Lumen</title>
+<style>
+  :root {
+    --bg:#0A0A0A; --surface:#151515; --surface2:#1E1E1E; --line:rgba(255,255,255,.07);
+    --text:#F5F5F7; --sub:rgba(245,245,247,.5); --cer:#007BA7; --cer2:#3FB3E0; --rose:#FF2D95;
+    --tab:64px;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; background:var(--bg); color:var(--text); font:16px/1.4 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing:antialiased; }
+  body { padding:max(14px, env(safe-area-inset-top)) 18px calc(var(--tab) + 40px + env(safe-area-inset-bottom)); }
+  main { max-width:460px; margin:0 auto; }
+  button, input, select { font:inherit; color:inherit; }
+  button { border:0; background:none; padding:0; cursor:pointer; }
+  svg { width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+
+  header { display:flex; align-items:center; justify-content:space-between; height:44px; max-width:460px; margin:0 auto 6px; }
+  header h1 { margin:0; font-size:20px; font-weight:600; letter-spacing:.01em; }
+  .hdr { display:flex; align-items:center; gap:14px; }
+  .castbtn { width:40px; height:40px; border-radius:50%; display:grid; place-items:center; color:var(--text); background:var(--surface); }
+  .castbtn:active { background:var(--surface2); }
+  .castbtn svg { width:21px; height:21px; }
+  .castrow { display:flex; align-items:center; gap:14px; width:100%; padding:14px 4px; text-align:left; border-top:1px solid var(--line); cursor:pointer; }
+  .castrow:first-of-type { border-top:0; }
+  .castrow .ic { width:42px; height:42px; border-radius:12px; background:var(--surface2); display:grid; place-items:center; flex:none; color:var(--cer2); }
+  .castrow .grow { flex:1; min-width:0; }
+  .castrow small { display:block; color:var(--sub); font-size:13px; margin-top:2px; }
+  .bar { height:4px; border-radius:2px; background:var(--surface2); overflow:hidden; margin-top:8px; display:none; }
+  .bar.on { display:block; }
+  .bar i { display:block; height:100%; width:0; background:var(--rose); transition:width .2s; }
+  .copy { color:var(--cer2); font-size:14px; padding:6px 0; }
+  .dot { width:8px; height:8px; border-radius:50%; background:#444; transition:background .3s; }
+  .dot.on { background:var(--cer2); }
+
+  .view { display:none; animation:fade .2s ease; }
+  .view.on { display:block; }
+  @keyframes fade { from { opacity:0; transform:translateY(4px); } }
+  h2 { font-size:28px; font-weight:600; margin:8px 0 18px; }
+  .label { font-size:13px; color:var(--sub); margin:26px 4px 8px; }
+  .muted { color:var(--sub); font-size:14px; }
+
+  /* ---- remote */
+  .remote { display:flex; flex-direction:column; align-items:center; padding-top:6px; }
+  .live { margin:0 0 14px; min-height:22px; text-align:center; color:var(--sub); font-size:15px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .live.said { color:var(--text); }
+  .trio { display:flex; justify-content:space-between; width:100%; max-width:330px; }
+  .round { width:58px; height:58px; border-radius:50%; background:var(--surface); display:grid; place-items:center; color:var(--text); transition:background .12s, transform .1s; touch-action:manipulation; }
+  .round:active, .round.held { background:var(--surface2); transform:scale(.94); }
+  .round small { display:none; }
+  .dpad { position:relative; width:min(78vw, 290px); height:min(78vw, 290px); border-radius:50%; background:var(--surface); margin:22px 0; touch-action:none; user-select:none; -webkit-user-select:none; }
+  .dpad .arrow { position:absolute; display:grid; place-items:center; color:var(--sub); transition:color .1s; }
+  .dpad .arrow svg { width:28px; height:28px; stroke-width:2.2; }
+  .dpad .up { left:30%; right:30%; top:0; height:32%; }
+  .dpad .down { left:30%; right:30%; bottom:0; height:32%; }
+  .dpad .left { top:30%; bottom:30%; left:0; width:32%; }
+  .dpad .right { top:30%; bottom:30%; right:0; width:32%; }
+  .dpad .arrow.held { color:var(--rose); }
+  .dpad::after { content:""; position:absolute; inset:0; border-radius:50%; pointer-events:none; background:radial-gradient(circle at var(--px,50%) var(--py,50%), rgba(255,45,149,.18), transparent 38%); opacity:0; transition:opacity .15s; }
+  .dpad.glow::after { opacity:1; }
+  .ok { position:absolute; left:50%; top:50%; width:38%; height:38%; transform:translate(-50%,-50%); border-radius:50%; background:var(--surface2); color:var(--text); font-size:18px; font-weight:600; letter-spacing:.06em; transition:background .12s, transform .1s; }
+  .ok:active, .ok.held { background:var(--rose); color:#fff; transform:translate(-50%,-50%) scale(.95); }
+  .mic { width:74px; height:74px; border-radius:50%; background:var(--cer); color:#fff; display:grid; place-items:center; position:relative; transition:background .2s, transform .15s; }
+  .mic svg { width:30px; height:30px; }
+  .mic:active { transform:scale(.95); }
+  .mic.live { background:var(--rose); }
+  .mic.live::after { content:""; position:absolute; inset:-8px; border-radius:50%; border:2px solid var(--rose); animation:ring 1.3s ease-out infinite; }
+  @keyframes ring { from { opacity:.8; transform:scale(.92); } to { opacity:0; transform:scale(1.25); } }
+  .mid { align-items:center; margin-bottom:22px; }
+  .rockers { display:grid; grid-template-columns:76px 1fr 76px; gap:14px; width:100%; max-width:330px; align-items:center; }
+  .rocker { height:150px; border-radius:38px; background:var(--surface); display:flex; flex-direction:column; overflow:hidden; }
+  .rocker button { flex:1; display:grid; place-items:center; color:var(--text); transition:background .12s; touch-action:manipulation; }
+  .rocker button:active, .rocker button.held { background:var(--surface2); }
+  .rocker span { font-size:11px; color:var(--sub); text-align:center; letter-spacing:.12em; }
+  .stack { display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .play { color:var(--rose); }
+
+  .sheet { position:fixed; left:0; right:0; bottom:0; background:var(--surface); border-radius:22px 22px 0 0; padding:16px 18px calc(18px + env(safe-area-inset-bottom));
+           transform:translateY(105%); transition:transform .25s ease; z-index:8; box-shadow:0 -10px 40px rgba(0,0,0,.6); }
+  .sheet.show { transform:none; }
+  .sheet .grab { width:40px; height:4px; border-radius:2px; background:var(--surface2); margin:0 auto 14px; }
+  .ask { display:flex; align-items:center; gap:8px; background:var(--surface2); border-radius:14px; padding:4px 4px 4px 14px; }
+  .ask input { flex:1; min-width:0; background:none; border:0; outline:none; height:46px; font-size:17px; }
+  .ask input::placeholder { color:var(--sub); }
+  .go { width:42px; height:42px; border-radius:12px; background:var(--cer); color:#fff; display:grid; place-items:center; }
+  .go svg { width:20px; height:20px; }
+  .hints { display:flex; gap:8px; overflow-x:auto; margin:12px -18px 0; padding:0 18px; scrollbar-width:none; }
+  .hints::-webkit-scrollbar { display:none; }
+  .hint { flex:none; padding:8px 13px; border-radius:999px; border:1px solid var(--line); color:var(--sub); font-size:14px; white-space:nowrap; }
+  .hint:active { color:var(--text); border-color:var(--cer); }
+  .shade { position:fixed; inset:0; background:rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .25s; z-index:7; }
+  .shade.show { opacity:1; pointer-events:auto; }
+
+  /* ---- lists */
+  .list { background:var(--surface); border-radius:16px; overflow:hidden; }
+  .row { display:flex; align-items:center; gap:12px; min-height:54px; padding:10px 16px; width:100%; text-align:left; border-top:1px solid var(--line); }
+  .row:first-child { border-top:0; }
+  button.row:active { background:var(--surface2); }
+  .row .grow { flex:1; min-width:0; }
+  .row small { display:block; color:var(--sub); font-size:13px; margin-top:1px; overflow:hidden; text-overflow:ellipsis; }
+  .row .val { color:var(--sub); font-size:15px; }
+  .check { width:20px; height:20px; color:var(--rose); visibility:hidden; }
+  .row.sel .check { visibility:visible; }
+  .row.sel .name { color:var(--rose); }
+  .chev { width:16px; height:16px; color:var(--sub); }
+  .accent { color:var(--cer2); }
+
+  .eq { background:var(--surface); border-radius:16px; padding:14px 12px 10px; margin-top:12px; position:relative; }
+  .eq svg { width:100%; height:96px; display:block; }
+  #eqLine { fill:none; stroke:var(--rose); stroke-width:2.5; stroke-linecap:round; vector-effect:non-scaling-stroke; transition:d .35s; }
+  #eqFill { fill:rgba(255,45,149,.16); stroke:none; transition:d .35s; }
+  #eqZero { stroke:rgba(255,255,255,.12); stroke-width:1; vector-effect:non-scaling-stroke; stroke-dasharray:3 4; }
+  .eq.off #eqLine { stroke:rgba(245,245,247,.35); } .eq.off #eqFill { fill:none; }
+  .eqx { display:flex; justify-content:space-between; font-size:10px; color:var(--sub); margin-top:6px; }
+  .eqstate { position:absolute; top:10px; right:14px; font-size:12px; color:var(--sub); }
+  .eqstate.on { color:var(--cer2); }
+  .seg { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
+  .seg button { height:46px; border-radius:14px; background:var(--surface); font-size:15px; transition:background .15s, color .15s; }
+  .seg button.on { background:var(--rose); color:#fff; }
+  .seg5 { grid-template-columns:repeat(5, 1fr); gap:6px; }
+  .seg5 button { font-size:13px; }
+
+  .slider { display:grid; grid-template-columns:96px 1fr 70px; align-items:center; gap:12px; padding:12px 16px; border-top:1px solid var(--line); }
+  .slider:first-child { border-top:0; }
+  .slider output { text-align:right; color:var(--sub); font-size:14px; font-variant-numeric:tabular-nums; }
+  input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:2px; background:rgba(255,255,255,.16); outline:none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#fff; }
+  input[type=range]::-moz-range-thumb { width:22px; height:22px; border-radius:50%; background:#fff; border:0; }
+
+  .switch { appearance:none; -webkit-appearance:none; flex:none; width:46px; height:28px; border-radius:14px; background:var(--surface2); position:relative; transition:background .2s; margin:0; }
+  .switch::after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; transition:transform .2s; }
+  .switch:checked { background:var(--cer); }
+  .switch:checked::after { transform:translateX(18px); }
+  .switch:disabled { opacity:.35; }
+
+  select.pick { background:none; border:0; color:var(--cer2); font-size:15px; text-align:right; outline:none; -webkit-appearance:none; appearance:none; }
+  select.pick option { color:#000; }
+  .field { width:100%; background:var(--surface2); border:0; border-radius:12px; padding:12px 14px; outline:none; font-size:15px; margin-top:8px; }
+  .field::placeholder { color:var(--sub); }
+  .btn { display:block; width:100%; height:50px; border-radius:14px; background:var(--cer); color:#fff; font-weight:600; font-size:16px; margin-top:12px; }
+  .btn.ghost { background:var(--surface); color:var(--text); font-weight:500; }
+  .btn:disabled { opacity:.5; }
+  .note { color:var(--sub); font-size:13px; margin:10px 4px 0; line-height:1.5; }
+  .inset { padding:4px 16px 16px; }
+  details.more summary { list-style:none; cursor:pointer; }
+  details.more summary::-webkit-details-marker { display:none; }
+
+  .search { width:100%; background:var(--surface); border:0; border-radius:14px; padding:13px 16px; outline:none; font-size:16px; margin-bottom:14px; }
+  .search::placeholder { color:var(--sub); }
+
+  /* ---- tab bar */
+  nav { position:fixed; left:0; right:0; bottom:0; height:calc(var(--tab) + env(safe-area-inset-bottom)); padding-bottom:env(safe-area-inset-bottom);
+        background:rgba(10,10,10,.92); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border-top:1px solid var(--line);
+        display:flex; justify-content:center; z-index:5; }
+  nav .tabs { display:flex; width:100%; max-width:460px; }
+  nav button { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; color:var(--sub); font-size:11px; }
+  nav button svg { width:23px; height:23px; }
+  nav button.on { color:var(--rose); }
+
+  .toast { position:fixed; left:50%; bottom:calc(var(--tab) + 14px + env(safe-area-inset-bottom)); transform:translate(-50%, 20px); opacity:0; pointer-events:none;
+           max-width:calc(100% - 36px); width:max-content; background:var(--surface2); color:var(--text); padding:11px 16px; border-radius:14px; font-size:15px;
+           transition:opacity .25s, transform .25s; z-index:6; box-shadow:0 8px 30px rgba(0,0,0,.5); }
+  .toast.show { opacity:1; transform:translate(-50%, 0); }
+  .toast.err { color:#ff7aa8; }
+
+  .pin { position:fixed; inset:0; background:var(--bg); display:none; align-items:center; justify-content:center; padding:24px; z-index:9; }
+  .pin.show { display:flex; }
+  .pin .box { width:100%; max-width:320px; text-align:center; }
+  .pin h1 { font-size:24px; font-weight:600; margin:0 0 8px; }
+  .pin input { width:100%; background:var(--surface); border:0; border-radius:16px; font-size:34px; letter-spacing:.5em; text-align:center; padding:14px 0 14px .5em; outline:none; margin:24px 0 4px; }
+  .pin p { color:var(--sub); font-size:14px; margin:0; }
+  #pinErr { color:#ff7aa8; min-height:20px; margin-top:8px; }
+  footer { text-align:center; color:var(--sub); font-size:13px; margin-top:34px; }
+  footer b { color:var(--rose); font-weight:400; }
+</style>
+</head>
+<body>
+<header><h1>Lumen</h1><span class="hdr"><button class="castbtn" id="castBtn" aria-label="Cast"><svg viewBox="0 0 24 24"><path d="M2.5 9V6.5a2 2 0 0 1 2-2h15a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H14M2.5 12.5a7 7 0 0 1 7 7M2.5 16a3.5 3.5 0 0 1 3.5 3.5"/><circle cx="2.9" cy="19.2" r=".6"/></svg></button><span class="dot" id="dot" title="Connection"></span></span></header>
+
+<main>
+  <!-- ============================== REMOTE -->
+  <section class="view" id="v-remote">
+    <div class="remote">
+      <p class="live" id="live"></p>
+      <div class="trio">
+        <button class="round" data-key="back" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5M4.5 12H15a5 5 0 0 1 0 10h-2"/></svg></button>
+        <button class="round" data-key="home" aria-label="Home"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5"/></svg></button>
+        <button class="round" data-key="menu" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button>
+      </div>
+
+      <div class="dpad" id="dpad">
+        <button class="arrow up" data-key="up" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+        <button class="arrow left" data-key="left" aria-label="Left"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <button class="arrow right" data-key="right" aria-label="Right"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button class="arrow down" data-key="down" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="ok" data-key="ok">OK</button>
+      </div>
+
+      <div class="trio mid">
+        <button class="round" id="kbd" aria-label="Keyboard"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6 10h.01M9 10h.01M12 10h.01M15 10h.01M18 10h.01M8 14h8"/></svg></button>
+        <button class="mic" id="mic" aria-label="Talk"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
+        <button class="round" data-key="mute" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4zM16 9.5l5 5M21 9.5l-5 5"/></svg></button>
+      </div>
+
+      <div class="rockers">
+        <div class="rocker">
+          <button data-key="volup" aria-label="Volume up"><svg viewBox="0 0 24 24"><path d="M6 12h12M12 6v12"/></svg></button>
+          <span>VOL</span>
+          <button data-key="voldown" aria-label="Volume down"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button>
+        </div>
+        <div class="stack">
+          <button class="round play" data-key="playpause" aria-label="Play or pause"><svg viewBox="0 0 24 24"><path d="M7 5l7 7-7 7zM16 6v12M19.5 6v12"/></svg></button>
+        </div>
+        <div class="rocker">
+          <button data-key="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M18 5v14M6 6l9 6-9 6z"/></svg></button>
+          <span>TRACK</span>
+          <button data-key="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M6 5v14M18 6l-9 6 9 6z"/></svg></button>
+        </div>
+      </div>
+      <p class="note" id="secureTip" style="display:none;text-align:center">Voice needs the secure page: your browser will warn that it isn't private because the projector made its own certificate. Tap <b>Advanced → Proceed</b>.</p>
+    </div>
+  </section>
+
+  <!-- ============================== APPS -->
+  <section class="view" id="v-apps">
+    <h2>Apps</h2>
+    <input class="search" id="appSearch" placeholder="Search" autocomplete="off">
+    <div class="list" id="apps"><div class="row muted">Loading…</div></div>
+  </section>
+
+  <!-- ============================== SOUND -->
+  <section class="view" id="v-sound">
+    <h2>Sound</h2>
+    <div class="seg" id="presets"></div>
+    <div class="eq"><svg viewBox="0 0 320 96" preserveAspectRatio="none" id="eq"><line id="eqZero" x1="0" y1="48" x2="320" y2="48"/><path id="eqFill"/><path id="eqLine"/></svg>
+      <div class="eqx"><span>Sub</span><span>Bass</span><span>Warmth</span><span>Body</span><span>Voice</span><span>Presence</span><span>Detail</span><span>Air</span></div>
+      <div class="eqstate" id="eqState"></div></div>
+    <div class="label">Output</div>
+    <div class="list">
+      <label class="row"><span class="grow">Sound goes to<small id="outputTip"></small></span>
+        <select class="pick" id="output">
+          <option value="auto">Auto</option><option value="speaker">Projector</option><option value="hometheatre">Home theatre</option>
+          <option value="portable">BT speaker</option><option value="headphones">Headphones</option>
+        </select></label>
+    </div>
+    <div class="label">Fine-tune</div>
+    <div class="list" id="sliders"></div>
+    <div class="label">Compare</div>
+    <div class="list">
+      <label class="row"><span class="grow">Hear it Off<small>Switches back by itself</small></span><input type="checkbox" class="switch" id="ab"></label>
+      <button class="row" id="reset"><span class="grow accent">Reset fine-tuning</span></button>
+    </div>
+    <p class="note" id="soundStatus"></p>
+  </section>
+
+  <!-- ============================== SCREEN -->
+  <section class="view" id="v-screen">
+    <h2>Screen</h2>
+    <div class="list" id="screens"></div>
+    <p class="note" id="screenTip"></p>
+    <div id="imaging">
+      <div class="label">Detail</div>
+      <div class="seg seg5" id="details"></div>
+      <p class="note" id="detailTip"></p>
+      <div class="list">
+        <label class="row"><span class="grow">Auto Picture<small>Films get HDR-style, YouTube gets Vivid, games get Game</small></span><input type="checkbox" class="switch" id="autopic"></label>
+        <button class="row" id="compare"><span class="grow">Compare with original<small>The projector's own picture for 5 seconds</small></span><svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
+    </div>
+    <div class="label">Calibrate</div>
+    <div class="seg">
+      <button data-cmd="focus test">Focus</button><button data-cmd="keystone grid">Keystone</button><button data-cmd="sharpness test">Sharpness</button>
+      <button data-cmd="black level">Black</button><button data-cmd="white level">White</button><button data-cmd="color bars">Colour</button>
+    </div>
+    <button class="btn ghost" data-cmd="screen presets">Show settings on projector</button>
+  </section>
+
+  <!-- ============================== MORE -->
+  <section class="view" id="v-more">
+    <h2>More</h2>
+
+    <div class="label">Window <span id="winCount"></span></div>
+    <div class="list">
+      <button class="row" data-cmd="window mode"><span class="grow">Open Lumen Window<small id="winStatus">Living outdoor scenes, full screen</small></span><svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      <div id="winPrep" class="inset" style="display:none">
+        <p class="note" style="margin-top:4px">Lumen downloads 10 real outdoor scenes once over Wi-Fi (about 60 MB), then plays them offline. Clips come from Pixabay: make a free account at pixabay.com, open pixabay.com/api/docs and copy your key.</p>
+        <input class="field" id="pixKey" type="password" placeholder="Pixabay API key" autocomplete="off">
+      </div>
+      <button class="row" id="winDownload"><span class="grow accent" id="winDownloadLabel">Download scenes</span></button>
+      <label class="row"><span class="grow">New scene every</span>
+        <select class="pick" id="winMins"><option value="1">1 min</option><option value="3">3 min</option><option value="5">5 min</option><option value="10">10 min</option><option value="30">30 min</option></select></label>
+      <label class="row"><span class="grow">Start after idle<small>On the home screen, with no buttons pressed</small></span>
+        <select class="pick" id="winIdle"><option value="0">Never</option><option value="5">5 min</option><option value="10">10 min</option><option value="20">20 min</option><option value="30">30 min</option></select></label>
+      <label class="row" style="cursor:pointer"><span class="grow accent">Add your own videos as scenes<small id="winOwnHint">They're kept and play offline too</small><span class="bar" id="winBar"><i id="winFill"></i></span></span>
+        <input type="file" id="winFiles" accept="video/*" multiple hidden></label>
+    </div>
+
+    <div class="label">Intro</div>
+    <div class="list">
+      <button class="row" data-cmd="play the intro"><span class="grow">Play the intro</span><svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+
+    <div class="label">Trending <span id="trendCountry"></span></div>
+    <div class="list">
+      <label class="row"><span class="grow">Continue Watching<small id="cwStatus">Pick up where you left off, above Trending</small></span><input type="checkbox" class="switch" id="cwon"></label>
+      <label class="row"><span class="grow">Show trending<small id="trendAll"></small></span><input type="checkbox" class="switch" id="allon"></label>
+      <label class="row"><span class="grow">YouTube<small id="ytStatus"></small></span><input type="checkbox" class="switch" id="yton"></label>
+      <label class="row"><span class="grow">Netflix<small id="nfStatus"></small></span><input type="checkbox" class="switch" id="nfon"></label>
+      <label class="row"><span class="grow">Prime Video<small id="pvStatus"></small></span><input type="checkbox" class="switch" id="pvon"></label>
+      <details class="more">
+        <summary class="row"><span class="grow accent">Keys and country</span></summary>
+        <div class="inset">
+          <input class="field" id="ytKey" type="password" placeholder="YouTube API key" autocomplete="off">
+          <input class="field" id="tmdbKey" type="password" placeholder="TMDB key (Netflix and Prime)" autocomplete="off">
+          <input class="field" id="ytRegion" maxlength="2" placeholder="Country: automatic" autocomplete="off">
+          <button class="btn" id="ytSave">Save</button>
+          <p class="note">YouTube: console.cloud.google.com → enable YouTube Data API v3 → create an API key.
+            Netflix and Prime: a free key from themoviedb.org → Settings → API. Leave the country empty to follow your Wi-Fi.
+            This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="label">Updates</div>
+    <div class="list">
+      <div class="row"><span class="grow"><span id="updVer">Lumen</span><small id="updStatus"></small></span></div>
+      <div id="updAvail" style="display:none" class="inset">
+        <p class="note" id="updNotes" style="white-space:pre-line;margin-top:0"></p>
+        <button class="btn" id="updInstall">Install update</button>
+      </div>
+      <button class="row" id="updCheck"><span class="grow accent">Check now</span></button>
+      <label class="row" style="cursor:pointer"><span class="grow accent">Send an APK from this phone</span><input type="file" id="updFile" accept=".apk,application/vnd.android.package-archive" hidden></label>
+      <label class="row"><span class="grow">Check automatically</span><input type="checkbox" class="switch" id="updAuto"></label>
+      <details class="more">
+        <summary class="row"><span class="grow accent">Update source</span><span class="val" id="updSourceName"></span></summary>
+        <div class="inset">
+          <input class="field" id="updSource" placeholder="yourname/lumen or https://…/update.json" autocomplete="off" autocapitalize="off" spellcheck="false">
+          <button class="btn" id="updSave">Save</button>
+          <p class="note">A public GitHub repo whose latest release has Lumen.apk attached, or a link to an update.json. Only Lumen builds signed with the same key are accepted, and you confirm each install on the projector.</p>
+        </div>
+      </details>
+    </div>
+
+    <footer>Developed with <b>&#9829;</b> by Radirig</footer>
+  </section>
+</main>
+
+<nav><div class="tabs">
+  <button data-tab="remote"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="3"/><circle cx="12" cy="8" r="1.6"/><path d="M10 13h4M10 16h4"/></svg>Remote</button>
+  <button data-tab="apps"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></svg>Apps</button>
+  <button data-tab="sound"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4zM15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>Sound</button>
+  <button data-tab="screen"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 20h8"/></svg>Screen</button>
+  <button data-tab="more"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg>More</button>
+</div></nav>
+
+<div class="shade" id="shade"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <form class="ask" id="form" autocomplete="off">
+    <input id="q" placeholder="Type, or say what to do" enterkeyhint="send" autocapitalize="off">
+    <button class="go" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
+  </form>
+  <div class="hints" id="ideas"></div>
+  <p class="note">Goes into the text box open on the projector. If none is open, it runs as a command or a search.</p>
+</div>
+
+<div class="sheet" id="castSheet">
+  <div class="grab"></div>
+  <h3 style="margin:0 0 6px;font-size:20px;font-weight:600">Cast to the projector</h3>
+  <button class="castrow" id="castMirror" type="button"><span class="ic"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></span>
+    <span class="grow">Mirror this phone<small id="mirrorHint">Opens the projector's mirroring app, then use your phone's Cast or Screen Mirroring</small></span></button>
+  <label class="castrow"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="9" r="1.5"/></svg></span>
+    <span class="grow">Send photos and videos<small id="sendHint">Pick one or several. They play full-screen; the arrows browse</small><span class="bar" id="sendBar"><i id="sendFill"></i></span></span>
+    <input type="file" id="castFiles" accept="image/*,video/*,audio/*" multiple hidden></label>
+  <div class="castrow" style="cursor:default"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M1.5 19.5h21"/></svg></span>
+    <span class="grow">Share a computer screen<small>On a laptop on this Wi-Fi, open in Chrome or Edge:</small>
+      <span id="shareUrl" style="display:block;color:var(--text);margin-top:4px;word-break:break-all"></span>
+      <button class="copy" id="copyShare" type="button">Copy link</button></span></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="pin" id="pinBox">
+  <div class="box">
+    <h1>Connect to Lumen</h1>
+    <p>Scan the QR code on the projector, or enter the PIN from Lumen settings → Phone remote.</p>
+    <input id="pin" inputmode="numeric" maxlength="4" pattern="[0-9]*" autocomplete="one-time-code" aria-label="PIN">
+    <button class="btn" id="pinGo">Connect</button>
+    <p id="pinErr"></p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var PIN = "";
+  try { PIN = localStorage.getItem("lumen_pin") || ""; } catch (e) {}
+  var m = location.hash.match(/pin=(\d{4})/);
+  if (m) { PIN = m[1]; try { localStorage.setItem("lumen_pin", PIN); } catch (e) {} history.replaceState(null, "", location.pathname); }
+
+  // ------------------------------------------------------------------ tabs
+  function tab(name) {
+    Array.prototype.forEach.call(document.querySelectorAll(".view"), function (v) { v.className = "view" + (v.id === "v-" + name ? " on" : ""); });
+    Array.prototype.forEach.call(document.querySelectorAll("nav button"), function (b) { b.className = b.getAttribute("data-tab") === name ? "on" : ""; });
+    try { localStorage.setItem("lumen_tab", name); } catch (e) {}
+    window.scrollTo(0, 0);
+    if (name === "sound") loadSound();
+    if (name === "screen" || name === "more") loadSettings();
+    if (name === "more") loadUpdate();
+    if (name === "apps") loadApps();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("nav button"), function (b) { b.onclick = function () { tab(b.getAttribute("data-tab")); }; });
+  var start = "remote";
+  try { start = localStorage.getItem("lumen_tab") || "remote"; } catch (e) {}
+  if (!$("v-" + start)) start = "remote";
+
+  // ------------------------------------------------------------------ basics
+  var toastTimer;
+  function toast(text, ok) {
+    var t = $("toast"); t.textContent = text; t.className = "toast show" + (ok === false ? " err" : "");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.className = "toast" + (ok === false ? " err" : ""); }, 3200);
+  }
+  function api(method, path, body) {
+    // no PIN yet (or a wrong one): ask, and don't send requests that would count as failed tries
+    if (!PIN) { askPin(); return Promise.reject(new Error("pin")); }
+    return fetch(path, { method: method, headers: { "X-Pin": PIN, "Content-Type": "text/plain;charset=utf-8" }, body: body })
+      .then(function (r) {
+        if (r.status === 403) { PIN = ""; askPin("Wrong PIN, try again."); throw new Error("pin"); }
+        return r.json();
+      });
+  }
+  function online(on) { $("dot").className = "dot" + (on ? " on" : ""); }
+  function buzz(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+
+  function send(text) {
+    text = (text || "").trim();
+    if (!text) return;
+    buzz(10);
+    api("POST", "/cmd", text).then(function (r) {
+      online(true); toast(r.reply, r.ok);
+    }).catch(function (e) {
+      if (e.message !== "pin") { online(false); toast("Can't reach the projector. Same Wi-Fi?", false); }
+    });
+  }
+  // ------------------------------------------------------------------ keys
+  function key(k) {
+    buzz(k === "ok" ? 14 : 8);
+    api("POST", "/key", k).then(function (r) { online(true); if (!r.ok) toast(r.reply, false); else if (r.reply) toast(r.reply, true); })
+      .catch(function (e) { if (e.message !== "pin") { online(false); toast("Can't reach the projector. Same Wi-Fi?", false); } });
+  }
+  var REPEAT = { up: 1, down: 1, left: 1, right: 1, volup: 1, voldown: 1 };
+  Array.prototype.forEach.call(document.querySelectorAll("[data-key]"), function (b) {
+    var k = b.getAttribute("data-key"), t1 = null, t2 = null;
+    function stop() { clearTimeout(t1); clearInterval(t2); b.classList.remove("held"); $("dpad").classList.remove("glow"); }
+    b.addEventListener("pointerdown", function (e) {
+      e.preventDefault(); b.classList.add("held");
+      if (b.classList.contains("arrow")) {
+        var d = $("dpad").getBoundingClientRect();
+        $("dpad").style.setProperty("--px", (e.clientX - d.left) + "px"); $("dpad").style.setProperty("--py", (e.clientY - d.top) + "px");
+        $("dpad").classList.add("glow");
+      }
+      key(k);
+      if (REPEAT[k]) t1 = setTimeout(function () { t2 = setInterval(function () { key(k); }, 140); }, 420); // hold to repeat
+    });
+    b.addEventListener("pointerup", stop); b.addEventListener("pointercancel", stop); b.addEventListener("pointerleave", stop);
+    b.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  });
+
+  // ------------------------------------------------------------------ sheets (keyboard, cast)
+  function sheet(open, id) {
+    id = id || "sheet";
+    ["sheet", "castSheet"].forEach(function (s) { $(s).className = "sheet" + (open && s === id ? " show" : ""); });
+    $("shade").className = "shade" + (open ? " show" : "");
+    if (open && id === "sheet") setTimeout(function () { $("q").focus(); }, 60); else $("q").blur();
+  }
+  $("kbd").onclick = function () { sheet(true); };
+  $("shade").onclick = function () { sheet(false); };
+
+  // ------------------------------------------------------------------ cast
+  var IOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  var SHARE = "https://" + location.hostname + ":8443/share";
+  $("shareUrl").textContent = SHARE;
+  $("mirrorHint").textContent = IOS ? "Opens the projector's mirroring app. Then Control Centre → Screen Mirroring"
+    : "Opens the projector's mirroring app. Then Quick settings → Cast / Smart View";
+  $("castBtn").onclick = function () { sheet(true, "castSheet"); };
+  $("castMirror").onclick = function () { sheet(false); send("mirror my phone"); };
+  $("copyShare").onclick = function () {
+    var done = function () { $("copyShare").textContent = "Copied"; setTimeout(function () { $("copyShare").textContent = "Copy link"; }, 1500); };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(SHARE).then(done).catch(function () {});
+    else { var t = document.createElement("textarea"); t.value = SHARE; document.body.appendChild(t); t.select(); try { document.execCommand("copy"); done(); } catch (e) {} t.remove(); }
+  };
+  $("castFiles").onchange = function () {
+    var files = Array.prototype.slice.call(this.files || []); this.value = "";
+    if (!files.length || !PIN) return;
+    var i = 0, total = files.reduce(function (a, f) { return a + f.size; }, 0), doneBytes = 0;
+    $("sendBar").className = "bar on";
+    function next() {
+      if (i >= files.length) {
+        $("sendHint").textContent = files.length > 1 ? files.length + " sent · use the arrows to browse" : "Sent · it's on the projector";
+        setTimeout(function () { $("sendBar").className = "bar"; $("sendFill").style.width = "0"; }, 1200);
+        return;
+      }
+      var f = files[i], x = new XMLHttpRequest();
+      x.open("POST", "/cast/upload?name=" + encodeURIComponent(f.name) + "&type=" + encodeURIComponent(f.type || ""));
+      x.setRequestHeader("X-Pin", PIN);
+      x.upload.onprogress = function (e) {
+        if (!e.lengthComputable) return;
+        var p = (doneBytes + e.loaded) / total;
+        $("sendFill").style.width = Math.round(p * 100) + "%";
+        $("sendHint").textContent = "Sending " + (files.length > 1 ? (i + 1) + " of " + files.length + " · " : "") + Math.round(p * 100) + "%";
+      };
+      x.onload = function () {
+        var r = {}; try { r = JSON.parse(x.responseText); } catch (e) {}
+        if (x.status === 403) { askPin("Wrong PIN, try again."); return; }
+        if (!r.ok) toast(r.reply || "Couldn't send " + f.name, false);
+        doneBytes += f.size; i++; next();
+      };
+      x.onerror = function () { toast("Couldn't send it. Same Wi-Fi?", false); $("sendBar").className = "bar"; };
+      x.send(f);
+    }
+    next();
+  };
+  $("form").onsubmit = function (e) {
+    e.preventDefault(); var v = $("q").value.trim(); if (!v) return;
+    $("q").value = "";
+    api("POST", "/text", v).then(function (r) { online(true); toast(r.reply, r.ok); }).catch(function (e) { if (e.message !== "pin") toast("Can't reach the projector. Same Wi-Fi?", false); });
+  };
+  Array.prototype.forEach.call(document.querySelectorAll("[data-cmd]"), function (b) { b.onclick = function () { send(b.getAttribute("data-cmd")); }; });
+  ["Search Stranger Things on Netflix", "Where can I watch Dune?", "Watch The Boys", "What's popular on Prime", "Play Coldplay on Spotify", "Show me the beach", "Screen share", "Go home"].forEach(function (t) {
+    var b = document.createElement("button"); b.className = "hint"; b.type = "button"; b.textContent = t; b.onclick = function () { sheet(false); send(t); }; $("ideas").appendChild(b);
+  });
+
+  // ------------------------------------------------------------------ voice
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR && window.isSecureContext) {
+    var rec = null, listening = false, finalText = "";
+    $("mic").onclick = function () {
+      if (listening && rec) { rec.stop(); return; }
+      rec = new SR();
+      rec.lang = navigator.language || "en-US";
+      rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+      finalText = "";
+      rec.onstart = function () { listening = true; $("mic").className = "mic live"; $("live").className = "live"; $("live").textContent = "Listening…"; buzz(16); };
+      rec.onresult = function (e) {
+        var t = ""; for (var i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+        $("live").className = "live said"; $("live").textContent = t;
+        if (e.results[e.results.length - 1].isFinal) finalText = t;
+      };
+      rec.onerror = function (e) {
+        $("live").className = "live";
+        $("live").textContent = e.error === "not-allowed" ? "Allow the microphone for this page" : e.error === "no-speech" ? "Didn't catch that. Tap and try again" : "Voice error: " + e.error;
+      };
+      rec.onend = function () {
+        listening = false; $("mic").className = "mic";
+        if (finalText) { $("live").textContent = "“" + finalText + "”"; send(finalText); }
+        else if ($("live").textContent === "Listening…") $("live").textContent = "";
+        setTimeout(function () { if (!listening) { $("live").className = "live"; $("live").textContent = ""; } }, 5000);
+      };
+      try { rec.start(); } catch (err) { $("live").textContent = "Couldn't start the microphone"; }
+    };
+  } else if (location.protocol === "http:") {
+    $("secureTip").style.display = "block";
+    $("mic").onclick = function () { location.href = "https://" + location.hostname + ":8443/#pin=" + encodeURIComponent(PIN); };
+  } else {
+    $("mic").onclick = function () { sheet(true); toast("This browser has no voice input: use the keyboard's mic", false); };
+  }
+
+  // ------------------------------------------------------------------ apps
+  var APPS = [];
+  function renderApps() {
+    var q = $("appSearch").value.trim().toLowerCase(), box = $("apps"); box.innerHTML = "";
+    var list = APPS.filter(function (n) { return !q || n.toLowerCase().indexOf(q) >= 0; });
+    if (!list.length) { box.innerHTML = '<div class="row muted">' + (APPS.length ? "No match" : "No apps") + "</div>"; return; }
+    list.forEach(function (name) {
+      var b = document.createElement("button"); b.className = "row";
+      var s = document.createElement("span"); s.className = "grow"; s.textContent = name; b.appendChild(s);
+      b.onclick = function () { send("open " + name); };
+      box.appendChild(b);
+    });
+  }
+  function loadApps() { api("GET", "/apps").then(function (list) { online(true); APPS = list || []; renderApps(); }).catch(function () {}); }
+  $("appSearch").oninput = renderApps;
+
+  // ------------------------------------------------------------------ sound
+  var PRESETS = [["off", "Off"], ["lumen", "Lumen"], ["cinema", "Cinema"], ["dialogue", "Dialogue"], ["music", "Music"], ["night", "Night"]];
+  var SLIDERS = [["bass", "Bass", 6], ["treble", "Treble", 6], ["clarity", "Clarity", 6], ["loudness", "Loudness", 4], ["surround", "Surround", 0]];
+  var OUTPUT = "";
+  PRESETS.forEach(function (p) {
+    var b = document.createElement("button"); b.textContent = p[1]; b.id = "p_" + p[0];
+    b.onclick = function () { setSound("preset=" + p[0]); };
+    $("presets").appendChild(b);
+  });
+  var timers = {};
+  SLIDERS.forEach(function (s) {
+    var row = document.createElement("label"); row.className = "slider";
+    row.innerHTML = "<span>" + s[1] + "</span><input type='range' min='0' max='100' step='5' id='s_" + s[0] + "'><output id='o_" + s[0] + "'></output>";
+    $("sliders").appendChild(row);
+    var input = row.querySelector("input");
+    input.oninput = function () {
+      label(s, input.value);
+      clearTimeout(timers[s[0]]);
+      timers[s[0]] = setTimeout(function () { setSound(s[0] + "=" + input.value); }, 140);
+    };
+  });
+  function label(s, v) {
+    if (!s[2]) { $("o_" + s[0]).textContent = OUTPUT === "Headphones" ? v + "%" : "phones"; return; }
+    var db = (v - 50) / 50 * s[2];
+    $("o_" + s[0]).textContent = Math.abs(db) < 0.05 ? "—" : (db > 0 ? "+" : "") + db.toFixed(1) + " dB";
+  }
+  function renderSound(st) {
+    if (!st || !st.preset) return;
+    OUTPUT = st.output || OUTPUT;
+    PRESETS.forEach(function (p) { $("p_" + p[0]).className = st.preset === p[0] ? "on" : ""; });
+    SLIDERS.forEach(function (s) { var el = $("s_" + s[0]); if (document.activeElement !== el) { el.value = st[s[0]]; label(s, st[s[0]]); } });
+    $("ab").checked = !!st.ab;
+    if (st.outputMode) {
+      $("output").value = st.outputMode;
+      var via = st.connection === "bluetooth" ? "Bluetooth" : st.connection === "cable" ? "cable" : "nothing connected";
+      $("outputTip").textContent = st.outputMode === "auto" ? st.output + " · " + via : "Tuned for " + st.output.toLowerCase();
+    }
+    $("soundStatus").textContent = st.status || "";
+    drawEq(st.gains || [0, 0, 0, 0, 0, 0, 0, 0], st.preset !== "off" && !st.ab, st.active);
+  }
+  function drawEq(g, on, active) {
+    var W = 320, H = 96, mid = H / 2, R = 8, pts = [];
+    for (var i = 0; i < 8; i++) pts.push([4 + i * (W - 8) / 7, mid - Math.max(-R, Math.min(R, g[i] || 0)) / R * (mid - 6)]);
+    var d = "M" + pts[0][0] + " " + pts[0][1];
+    for (var j = 1; j < 8; j++) { var cx = (pts[j - 1][0] + pts[j][0]) / 2; d += " C" + cx + " " + pts[j - 1][1] + " " + cx + " " + pts[j][1] + " " + pts[j][0] + " " + pts[j][1]; }
+    $("eqLine").setAttribute("d", d);
+    $("eqFill").setAttribute("d", d + " L" + pts[7][0] + " " + mid + " L" + pts[0][0] + " " + mid + " Z");
+    $("eq").parentNode.className = "eq" + (on ? "" : " off");
+    $("eqState").className = "eqstate" + (active ? " on" : "");
+    $("eqState").textContent = !on ? "Off" : active === false ? "Not active on the projector" : "Active";
+  }
+  function loadSound() { api("GET", "/sound").then(function (st) { online(true); renderSound(st); }).catch(function () {}); }
+  function setSound(form) { buzz(8); api("POST", "/sound", form).then(renderSound).catch(function () {}); }
+  $("ab").onchange = function () { setSound("ab=" + this.checked); };
+  $("reset").onclick = function () { setSound("reset=1"); };
+  $("output").onchange = function () { setSound("output=" + this.value); };
+
+  // ------------------------------------------------------------------ screen + trending (settings)
+  var SCREENS = [["standard", "Natural", "Everyday: clean, true colour with a little pop"], ["cinema", "Cinema", "Films in a dark room, most accurate"],
+                 ["hdr", "HDR-style", "Films: deeper blacks, brighter mid-tones"], ["vivid", "Vivid", "YouTube and animation: bold and crisp"],
+                 ["game", "Game", "Fastest response"], ["bright", "Bright room", "Daytime, lights on"]];
+  var DETAILS = [["Soft", "Smooth, for old or low-quality video"], ["Natural", "The projector's own tuning"],
+                 ["Crisp", "Sharper edges, no halos: the everyday pick"], ["Detail+", "More texture in faces, hair and fabric"],
+                 ["Max", "Strongest; best for clean HD sources"]];
+  DETAILS.forEach(function (d, i) {
+    var b = document.createElement("button"); b.id = "det_" + i; b.textContent = d[0];
+    b.onclick = function () { buzz(8); api("POST", "/settings", "detail=" + i).then(renderSettings).catch(function () {}); };
+    $("details").appendChild(b);
+  });
+  $("autopic").onchange = function () { api("POST", "/settings", "autopic=" + this.checked).then(renderSettings).catch(function () {}); };
+  $("compare").onclick = function () { buzz(8); api("POST", "/settings", "compare=1").catch(function () {}); };
+  $("cwon").onchange = function () { api("POST", "/settings", "cwon=" + this.checked).then(renderSettings).catch(function () {}); };
+  SCREENS.forEach(function (p) {
+    var b = document.createElement("button"); b.className = "row"; b.id = "scr_" + p[0];
+    b.innerHTML = '<span class="grow"><span class="name">' + p[1] + "</span><small>" + p[2] + '</small></span><svg class="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+    b.onclick = function () { buzz(8); api("POST", "/settings", "screen=" + p[0]).then(renderSettings).catch(function () {}); };
+    $("screens").appendChild(b);
+  });
+  function renderSettings(st) {
+    if (!st || st.region === undefined) return;
+    online(true);
+    $("trendCountry").textContent = st.country ? "· " + st.country : "";
+    $("trendAll").textContent = st.allOn ? st.trending : "All rows hidden";
+    $("ytStatus").textContent = (st.ytKeySet ? "" : "Needs a key · ") + st.yt;
+    $("nfStatus").textContent = (st.tmdbKeySet ? "" : "Needs a key · ") + st.nf;
+    $("pvStatus").textContent = (st.tmdbKeySet ? "" : "Needs a key · ") + st.pv;
+    $("allon").checked = st.allOn; $("yton").checked = st.ytOn; $("nfon").checked = st.nfOn; $("pvon").checked = st.pvOn;
+    ["yton", "nfon", "pvon"].forEach(function (k) { $(k).disabled = !st.allOn; });
+    if (document.activeElement !== $("ytRegion")) { $("ytRegion").value = st.region || ""; $("ytRegion").placeholder = st.auto ? "Country: automatic (" + st.country + ")" : "Country: automatic"; }
+    if (st.window) renderWindow(st.window);
+    if (st.screen) {
+      SCREENS.forEach(function (p) { $("scr_" + p[0]).className = "row" + (st.screen === p[0] ? " sel" : ""); });
+      $("screenTip").textContent = st.engine ? "Lumen Imaging sets the projector's real picture: contrast, colour, gamma, dynamic contrast and detail."
+        : (st.screenAuto ? "Brightness and warmth change automatically. The projector shows the menu values for the rest."
+        : "The projector shows the best menu values for each preset. Allow automatic changes there for brightness and warmth.");
+    }
+    $("imaging").style.display = st.engine ? "" : "none";
+    if (st.detail !== undefined) {
+      DETAILS.forEach(function (d, i) { $("det_" + i).className = st.detail === i ? "on" : ""; });
+      $("detailTip").textContent = DETAILS[st.detail] ? DETAILS[st.detail][1] : "";
+      $("autopic").checked = !!st.autoPic;
+    }
+    if (st.cwOn !== undefined) {
+      $("cwon").checked = st.cwOn;
+      $("cwStatus").textContent = st.cwOn && !st.cwAccess ? "Needs one-time access: run LumenOS-Update from your PC" : "Pick up where you left off, above Trending";
+    }
+  }
+  function loadSettings() { api("GET", "/settings").then(renderSettings).catch(function () {}); }
+
+  // ------------------------------------------------------------------ Lumen Window
+  var winPoll = null;
+  function renderWindow(w) {
+    $("winCount").textContent = w.scenes ? "· " + w.scenes + " scenes" : "";
+    $("winStatus").textContent = w.status;
+    $("winPrep").style.display = w.keySet ? "none" : "block";
+    $("winDownloadLabel").textContent = w.busy ? "Downloading…" : w.scenes >= 10 ? "Get new scenes" : w.scenes > 0 ? "Download missing scenes" : "Download scenes";
+    if (document.activeElement !== $("winMins")) $("winMins").value = String(w.minutes);
+    if (document.activeElement !== $("winIdle")) $("winIdle").value = String(w.idle);
+    clearTimeout(winPoll);
+    if (w.busy) winPoll = setTimeout(loadSettings, 1500);
+  }
+  function setWindow(body) { api("POST", "/settings", body).then(function (st) { renderSettings(st); }).catch(function () {}); }
+  $("winDownload").onclick = function () {
+    var key = $("pixKey").value.trim(), body = "";
+    if (key) body = "pixkey=" + encodeURIComponent(key) + "&";
+    var fresh = /new scenes/i.test($("winDownloadLabel").textContent);
+    body += "windl=" + (fresh ? "fresh" : "missing");
+    $("pixKey").value = "";
+    setWindow(body); setTimeout(loadSettings, 1200);
+  };
+  $("winMins").onchange = function () { setWindow("winmins=" + this.value); };
+  $("winIdle").onchange = function () { setWindow("winidle=" + this.value); };
+  $("winFiles").onchange = function () {
+    var files = Array.prototype.slice.call(this.files || []); this.value = "";
+    if (!files.length || !PIN) return;
+    var i = 0, total = files.reduce(function (a, f) { return a + f.size; }, 0), doneBytes = 0;
+    $("winBar").className = "bar on";
+    function next() {
+      if (i >= files.length) { $("winOwnHint").textContent = "Added · they're in the scene rotation now"; setTimeout(function () { $("winBar").className = "bar"; $("winFill").style.width = "0"; }, 1200); loadSettings(); return; }
+      var f = files[i], x = new XMLHttpRequest();
+      x.open("POST", "/cast/upload?dest=window&name=" + encodeURIComponent(f.name) + "&type=" + encodeURIComponent(f.type || ""));
+      x.setRequestHeader("X-Pin", PIN);
+      x.upload.onprogress = function (e) { if (e.lengthComputable) { var p = (doneBytes + e.loaded) / total; $("winFill").style.width = Math.round(p * 100) + "%"; $("winOwnHint").textContent = "Sending " + Math.round(p * 100) + "%"; } };
+      x.onload = function () { var r = {}; try { r = JSON.parse(x.responseText); } catch (e) {} if (!r.ok) toast(r.reply || "Couldn't add " + f.name, false); doneBytes += f.size; i++; next(); };
+      x.onerror = function () { toast("Couldn't send it. Same Wi-Fi?", false); $("winBar").className = "bar"; };
+      x.send(f);
+    }
+    next();
+  };
+  ["allon", "yton", "nfon", "pvon"].forEach(function (k) {
+    $(k).onchange = function () { api("POST", "/settings", k + "=" + this.checked).then(function (st) { renderSettings(st); setTimeout(loadSettings, 5000); }).catch(function () {}); };
+  });
+  $("ytSave").onclick = function () {
+    var body = "region=" + encodeURIComponent($("ytRegion").value.trim());
+    if ($("ytKey").value.trim()) body += "&ytkey=" + encodeURIComponent($("ytKey").value.trim());
+    if ($("tmdbKey").value.trim()) body += "&tmdbkey=" + encodeURIComponent($("tmdbKey").value.trim());
+    api("POST", "/settings", body).then(function (st) { $("ytKey").value = ""; $("tmdbKey").value = ""; renderSettings(st); toast("Saved", true); setTimeout(loadSettings, 5000); }).catch(function () {});
+  };
+
+  // ------------------------------------------------------------------ updates
+  function renderUpdate(u) {
+    if (!u || u.current === undefined) return;
+    $("updVer").textContent = "Lumen " + u.current;
+    $("updStatus").textContent = u.canInstall ? u.status : u.status + " · allow installs on the projector first (Lumen settings → Updates)";
+    $("updAuto").checked = !!u.auto;
+    $("updSourceName").textContent = u.source ? u.sourceName : "Not set";
+    if (document.activeElement !== $("updSource")) $("updSource").value = (u.source || "").replace(/^github:/, "");
+    var a = u.available;
+    $("updAvail").style.display = a ? "block" : "none";
+    if (a) { $("updInstall").textContent = "Install Lumen " + a.versionName; $("updNotes").textContent = a.notes || ""; }
+    $("updInstall").disabled = !!u.busy;
+    if (u.busy) setTimeout(loadUpdate, 1500);
+  }
+  function loadUpdate() { api("GET", "/update").then(renderUpdate).catch(function () {}); }
+  function setUpdate(body) { api("POST", "/update", body).then(function (u) { renderUpdate(u); setTimeout(loadUpdate, 2500); }).catch(function () {}); }
+  $("updCheck").onclick = function () { $("updStatus").textContent = "Checking…"; setUpdate("check=1"); };
+  $("updInstall").onclick = function () { setUpdate("install=1"); toast("Downloading. Press Install on the projector when it asks", true); };
+  $("updAuto").onchange = function () { setUpdate("auto=" + this.checked); };
+  $("updSave").onclick = function () { setUpdate("source=" + encodeURIComponent($("updSource").value.trim())); toast("Saved", true); };
+  $("updFile").onchange = function () {
+    var f = this.files && this.files[0]; this.value = "";
+    if (!f) return;
+    if (!/\.apk$/i.test(f.name)) { toast("That isn't an APK file", false); return; }
+    $("updStatus").textContent = "Sending " + f.name + " (" + Math.round(f.size / 1024) + " KB)…";
+    fetch("/update/upload", { method: "POST", headers: { "X-Pin": PIN, "Content-Type": "application/vnd.android.package-archive" }, body: f })
+      .then(function (r) { if (r.status === 403) { askPin("Wrong PIN, try again."); throw new Error("pin"); } return r.json(); })
+      .then(function (r) { toast(r.reply, r.ok); $("updStatus").textContent = r.reply; setTimeout(loadUpdate, 6000); })
+      .catch(function (e) { if (e.message !== "pin") toast("Couldn't send it. Same Wi-Fi?", false); });
+  };
+
+  // ------------------------------------------------------------------ PIN
+  function askPin(msg) { if (msg || !$("pinErr").textContent) $("pinErr").textContent = msg || ""; $("pinBox").className = "pin show"; setTimeout(function () { $("pin").focus(); }, 50); }
+  $("pinGo").onclick = function () {
+    PIN = $("pin").value.trim();
+    if (!/^\d{4}$/.test(PIN)) { PIN = ""; $("pinErr").textContent = "Enter the 4 digits"; return; }
+    api("GET", "/ping").then(function () {
+      try { localStorage.setItem("lumen_pin", PIN); } catch (e) {}
+      $("pinBox").className = "pin"; online(true); tab(start);
+    }).catch(function () {});
+  };
+  $("pin").addEventListener("input", function () { this.value = this.value.replace(/\D/g, ""); if (this.value.length === 4) $("pinGo").onclick(); });
+
+  if (!PIN) askPin(); else tab(start);
+  if (PIN) api("GET", "/ping").then(function () { online(true); }).catch(function (e) { if (e.message !== "pin") online(false); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0A0A0A">
+<title>Share to Lumen</title>
+<style>
+  :root { --bg:#0A0A0A; --surface:#151515; --surface2:#1E1E1E; --line:rgba(255,255,255,.07); --text:#F5F5F7; --sub:rgba(245,245,247,.55); --cer:#007BA7; --cer2:#3FB3E0; --rose:#FF2D95; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--text); font:16px/1.45 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing:antialiased; }
+  main { max-width:560px; margin:0 auto; padding:56px 22px 40px; }
+  h1 { font-size:30px; font-weight:600; margin:0 0 6px; }
+  .sub { color:var(--sub); margin:0 0 28px; }
+  .card { background:var(--surface); border-radius:18px; padding:20px; }
+  button { font:inherit; border:0; cursor:pointer; }
+  .go { width:100%; height:56px; border-radius:16px; background:var(--cer); color:#fff; font-size:17px; font-weight:600; transition:background .2s, transform .1s; }
+  .go:active { transform:scale(.98); }
+  .go.stop { background:var(--rose); }
+  .go:disabled { opacity:.5; cursor:default; }
+  .seg { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px; }
+  .seg button { height:44px; border-radius:12px; background:var(--surface2); color:var(--text); font-size:15px; }
+  .seg button.on { background:var(--surface2); box-shadow:inset 0 0 0 2px var(--cer2); color:var(--cer2); }
+  .status { display:flex; align-items:center; gap:10px; margin-top:18px; color:var(--sub); font-size:15px; min-height:24px; }
+  .dot { width:9px; height:9px; border-radius:50%; background:#444; flex:none; }
+  .dot.live { background:var(--rose); box-shadow:0 0 12px var(--rose); animation:pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity:.45; } }
+  video { width:100%; border-radius:14px; background:#000; margin-top:18px; display:none; aspect-ratio:16/9; object-fit:contain; }
+  video.on { display:block; }
+  .note { color:var(--sub); font-size:14px; margin:18px 2px 0; }
+  .note b { color:var(--text); font-weight:500; }
+  .pin { margin-top:16px; display:none; }
+  .pin.show { display:block; }
+  .pin input { width:100%; background:var(--surface2); border:0; border-radius:12px; color:var(--text); font-size:24px; letter-spacing:.4em; text-align:center; padding:12px 0 12px .4em; outline:none; }
+  .err { color:#ff7aa8; }
+  a { color:var(--cer2); }
+  footer { text-align:center; color:var(--sub); font-size:13px; margin-top:30px; }
+  footer b { color:var(--rose); font-weight:400; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Share to Lumen</h1>
+  <p class="sub" id="lead">Show this computer's screen, a window or a browser tab on the projector.</p>
+
+  <div class="card" id="card">
+    <button class="go" id="go">Start sharing</button>
+    <div class="seg" id="quality">
+      <button data-q="smooth" class="on">Smooth</button>
+      <button data-q="sharp">Sharp text</button>
+    </div>
+    <div class="pin" id="pinBox"><input id="pin" inputmode="numeric" maxlength="4" placeholder="PIN" autocomplete="off" aria-label="PIN from the projector"></div>
+    <div class="status"><span class="dot" id="dot"></span><span id="status">Ready</span></div>
+    <video id="preview" muted playsinline></video>
+  </div>
+
+  <p class="note" id="tips">Tip: share a <b>tab</b> for videos and slides; it's smoother than the whole screen. Sound stays on this computer.
+    Press <b>Back</b> on the projector remote to stop it from the projector.</p>
+  <footer>Lumen · developed with <b>&#9829;</b> by Radirig</footer>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var PIN = "";
+  try { PIN = localStorage.getItem("lumen_pin") || ""; } catch (e) {}
+  var m = location.hash.match(/pin=(\d{4})/);
+  if (m) { PIN = m[1]; try { localStorage.setItem("lumen_pin", PIN); } catch (e) {} history.replaceState(null, "", location.pathname); }
+  if (!PIN) $("pinBox").className = "pin show";
+  $("pin").addEventListener("input", function () { this.value = this.value.replace(/\D/g, ""); if (this.value.length === 4) { PIN = this.value; try { localStorage.setItem("lumen_pin", PIN); } catch (e) {} $("pinBox").className = "pin"; } });
+
+  function status(text, live, err) { $("status").textContent = text; $("status").className = err ? "err" : ""; $("dot").className = "dot" + (live ? " live" : ""); }
+
+  // ---------------------------------------------------------------- can this browser share?
+  var canShare = navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia;
+  if (!window.isSecureContext && location.protocol === "http:") {
+    $("go").textContent = "Open the secure page";
+    $("go").onclick = function () { location.href = "https://" + location.hostname + ":8443/share" + (PIN ? "#pin=" + PIN : ""); };
+    $("tips").innerHTML = "Browsers only share a screen on a secure page. The projector made its own certificate, so your browser will warn that it isn't private: choose <b>Advanced → Proceed</b>. It's your projector on your Wi-Fi.";
+    return;
+  }
+  if (!canShare) {
+    $("lead").textContent = "Phones can't share their screen from a browser.";
+    $("quality").style.display = "none";
+    $("go").textContent = "Open the projector's mirroring app";
+    $("go").onclick = function () {
+      fetch("/cmd", { method: "POST", headers: { "X-Pin": PIN, "Content-Type": "text/plain" }, body: "mirror my phone" })
+        .then(function (r) { return r.json(); }).then(function (r) { status(r.reply, false, !r.ok); })
+        .catch(function () { status("Can't reach the projector. Same Wi-Fi?", false, true); });
+    };
+    var ios = /iPhone|iPad/.test(navigator.userAgent);
+    $("tips").innerHTML = ios ? "Then open <b>Control Centre → Screen Mirroring</b> on your iPhone and pick the projector. To show photos or videos instead, use <b>Cast</b> in the <a href='/'>Lumen remote</a>."
+      : "Then on your phone open <b>Quick settings → Cast / Smart View / Screen mirroring</b> and pick the projector. To show photos or videos instead, use <b>Cast</b> in the <a href='/'>Lumen remote</a>.";
+    status("Ready", false);
+    return;
+  }
+
+  // ---------------------------------------------------------------- quality
+  var Q = { smooth: { w: 1280, h: 720, q: 0.6, fps: 15 }, sharp: { w: 1280, h: 720, q: 0.82, fps: 8 } };
+  var quality = "smooth";
+  try { quality = localStorage.getItem("lumen_share_q") || "smooth"; } catch (e) {}
+  function setQ(k) {
+    quality = Q[k] ? k : "smooth";
+    Array.prototype.forEach.call(document.querySelectorAll("#quality button"), function (b) { b.className = b.getAttribute("data-q") === quality ? "on" : ""; });
+    try { localStorage.setItem("lumen_share_q", quality); } catch (e) {}
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("#quality button"), function (b) { b.onclick = function () { setQ(b.getAttribute("data-q")); }; });
+  setQ(quality);
+
+  // ---------------------------------------------------------------- sharing
+  var stream = null, running = false, session = "", sent = 0, bytes = 0, t0 = 0;
+  var video = $("preview"), canvas = document.createElement("canvas"), ctx = canvas.getContext("2d");
+  var probe = document.createElement("canvas"); probe.width = 32; probe.height = 18;
+  var pctx = probe.getContext("2d", { willReadFrequently: true }), last = null, lastSentAt = 0;
+
+  function changed() {
+    // compares a 32×18 thumbnail with the last frame sent, so a still screen isn't sent 15 times a second
+    pctx.drawImage(canvas, 0, 0, 32, 18);
+    var d = pctx.getImageData(0, 0, 32, 18).data, diff = 0;
+    if (last) for (var i = 0; i < d.length; i += 4) diff += Math.abs(d[i] - last[i]) + Math.abs(d[i + 1] - last[i + 1]) + Math.abs(d[i + 2] - last[i + 2]);
+    var moved = !last || diff > 32 * 18 * 3 * 1.5;
+    if (moved) last = new Uint8ClampedArray(d);
+    return moved;
+  }
+
+  function start() {
+    if (!PIN) { $("pinBox").className = "pin show"; $("pin").focus(); status("Enter the PIN shown on the projector", false, true); return; }
+    navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 20 } }, audio: false }).then(function (s) {
+      stream = s; video.srcObject = s; video.className = "on"; video.play();
+      session = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      s.getVideoTracks()[0].addEventListener("ended", stop);
+      running = true; sent = 0; bytes = 0; t0 = performance.now(); last = null;
+      $("go").textContent = "Stop sharing"; $("go").className = "go stop";
+      status("Connecting…", true);
+      loop();
+    }).catch(function (e) {
+      status(e && e.name === "NotAllowedError" ? "Sharing was cancelled" : "Couldn't start sharing: " + (e && e.message || e), false, e && e.name !== "NotAllowedError");
+    });
+  }
+
+  function stop(msg) {
+    if (!running && !stream) return;
+    running = false;
+    if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
+    stream = null; video.srcObject = null; video.className = "";
+    $("go").textContent = "Start sharing"; $("go").className = "go";
+    fetch("/share/stop", { method: "POST", headers: { "X-Pin": PIN, "X-Share": session }, body: "" }).catch(function () {});
+    status(typeof msg === "string" ? msg : "Stopped", false);
+  }
+
+  function loop() {
+    if (!running) return;
+    var cfg = Q[quality], begun = performance.now();
+    var vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) { setTimeout(loop, 100); return; }
+    var sc = Math.min(1, cfg.w / vw, cfg.h / vh);
+    var w = Math.round(vw * sc / 2) * 2, h = Math.round(vh * sc / 2) * 2;
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; last = null; }
+    ctx.drawImage(video, 0, 0, w, h);
+    var now = performance.now();
+    if (!changed() && now - lastSentAt < 1000) { setTimeout(loop, 1000 / cfg.fps); return; } // still screen: about once a second
+    canvas.toBlob(function (blob) {
+      if (!running || !blob) return;
+      fetch("/share/frame", { method: "POST", headers: { "X-Pin": PIN, "X-Share": session, "Content-Type": "image/jpeg" }, body: blob })
+        .then(function (r) {
+          if (r.status === 403) { stop("Wrong PIN. Reload and enter the PIN shown on the projector"); try { localStorage.removeItem("lumen_pin"); } catch (e) {} throw new Error("pin"); }
+          return r.json();
+        })
+        .then(function (r) {
+          if (!r.ok) { stop(r.reply || "Stopped on the projector"); return; }
+          sent++; bytes += blob.size; lastSentAt = performance.now();
+          var secs = (performance.now() - t0) / 1000;
+          if (sent % 5 === 0) status("Live on the projector · " + Math.round(sent / secs) + " fps · " + Math.round(bytes / secs / 1024) + " KB/s", true);
+          var wait = Math.max(0, 1000 / cfg.fps - (performance.now() - begun)); // the next frame waits for this one: no backlog
+          setTimeout(loop, wait);
+        })
+        .catch(function (e) { if (e.message !== "pin" && running) { status("Connection lost, retrying…", true, true); setTimeout(loop, 1000); } });
+    }, "image/jpeg", cfg.q);
+  }
+
+  $("go").onclick = function () { if (running) stop(); else start(); };
+  window.addEventListener("beforeunload", function () { if (running) navigator.sendBeacon && stop(); });
+})();
+</script>
+</body>
+</html>

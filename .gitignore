@@ -1,0 +1,20 @@
+# Secrets: never commit
+*.keystore
+*.jks
+keys.local
+app/src/com/lumen/launcher/BuiltInKeys.java
+
+# Build output
+app/build/
+app/Lumen.apk
+app/*.idsig
+*.idsig
+
+# LumenOS toolkit: downloaded/generated on the PC
+lumenos/platform-tools/
+lumenos/platform-tools.zip
+lumenos/files/Lumen.apk
+lumenos/files/logo/hold/
+lumenos/backup/
+lumenos/LogoCheck/
+lumenos/speed-report.txt

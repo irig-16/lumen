@@ -1,0 +1,40 @@
+name: Release
+
+# Runs when a new version lands in the update channel (ota/update.json on main):
+# creates the GitHub release with the signed APK and the LumenOS toolkit for new projectors.
+on:
+  push:
+    branches: [main]
+    paths: [ota/update.json]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the LumenOS toolkit zip
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3-pil fonts-inter zip
+          python3 lumenos/build_hold.py
+          cp ota/Lumen.apk lumenos/files/Lumen.apk
+          (cd lumenos && zip -qr ../LumenOS-toolkit.zip . -x 'platform-tools/*')
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NAME=$(jq -r .versionName ota/update.json)
+          NOTES=$(jq -r .notes ota/update.json)
+          SHA=$(jq -r .sha256 ota/update.json)
+          if gh release view "v$NAME" >/dev/null 2>&1; then
+            echo "v$NAME already released"; exit 0
+          fi
+          printf '%s\n\nSHA-256 of Lumen.apk: %s\n\nProjectors running Lumen 7 or later install this by themselves (they ask on the home screen).\nNew projector? Download LumenOS-toolkit.zip and run LumenOS-Install.bat.\n' "$NOTES" "$SHA" > notes.md
+          gh release create "v$NAME" ota/Lumen.apk ota/update.json LumenOS-toolkit.zip \
+            --title "Lumen $NAME" --notes-file notes.md
