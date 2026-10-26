@@ -1,0 +1,8 @@
+{
+  "versionCode": 17,
+  "versionName": "7.0",
+  "url": "https://raw.githubusercontent.com/irig-16/lumen/main/ota/Lumen.apk",
+  "sha256": "da3308fca3e486eb5c62613316ab58acf9b81699452eb7585e7064a5eb07db36",
+  "size": 414570,
+  "notes": "Lumen 7.0: heat guard (warns at 100\u00b0C, cools down at 105\u00b0C, pauses at 110\u00b0C), frees memory when a film starts, and updates itself from GitHub with a prompt on the home screen."
+}
