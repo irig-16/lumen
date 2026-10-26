@@ -46,7 +46,7 @@ final class ScreenEngine {
             {50, 54, 58, 50, 45, 1, 1, 2, 1, 3, 0},
             {49, 50, 52, 50, 35, 2, 1, 1, 1, 4, 2},
             {50, 57, 60, 50, 48, 1, 1, 3, 1, 2, 0},
-            {52, 58, 62, 50, 52, 1, 1, 3, 1, 3, 1},
+            {49, 56, 56, 50, 52, 1, 1, 2, 1, 3, 1},   // Vivid (7.2: a little less bright and saturated)
             {50, 54, 56, 50, 45, 0, 0, 2, 1, 3, 0},
             {56, 60, 58, 50, 50, 1, 1, 3, 0, 1, 1}};
     private static final int[] PQ_IDS = {PictureEngine.BRIGHTNESS, PictureEngine.CONTRAST, PictureEngine.COLOR,
@@ -54,7 +54,7 @@ final class ScreenEngine {
             PictureEngine.BLACK_EXT, PictureEngine.GAMMA, PictureEngine.COLOR_TEMP};
 
     /** Screen brightness (0–255) per profile when the processor isn't reachable; -1 = the user's own. */
-    private static final int[] BRIGHTNESS = {-1, 190, 255, 255, -1, 255};
+    private static final int[] BRIGHTNESS = {-1, 190, 255, 230, -1, 255};
     /** Night-light warmth (kelvin) per profile in fallback mode; 0 = off. */
     private static final int[] WARMTH_K = {0, 4082, 0, 0, 0, 0};
 

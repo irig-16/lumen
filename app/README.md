@@ -32,6 +32,14 @@ Controls:
 - You can also say "play the intro".
 - It plays once per boot, not every time you press HOME.
 
+## Weather and Continue Watching
+**Weather** sits next to the date: the temperature, the sky, today's high and low, and your city. No account or key is needed: the location comes from your internet connection (ipwho.is) and the forecast from [Open-Meteo](https://open-meteo.com). It refreshes every 30 minutes, pauses while the heat guard cools the projector down, and can be turned off in Lumen settings → **Weather next to the date**.
+
+**Continue Watching** shows one card per series or film, above Trending:
+- Series are named by the show and the episode number, like **Breaking Bad · S5 E14** (never the episode's own title, so nothing is spoiled).
+- The artwork is fitted whole into the card over a soft blurred backdrop, instead of being cropped.
+- YouTube is left out: it has its own home row in Trending.
+
 ## Trending: YouTube, Netflix and Prime Video
 Up to three rows show what's popular in your country. Each follows the projector's Wi-Fi location.
 

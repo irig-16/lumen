@@ -12,7 +12,8 @@ import android.graphics.drawable.Drawable;
 /** Small line icons drawn in code (no image files, crisp at any density). */
 final class Glyph extends Drawable {
 
-    static final int WIFI = 0, BLUETOOTH = 1, DISPLAY = 2, SETTINGS = 3, BOOST = 4, TUNE = 5, FILES = 6, MIC = 7, PHONE = 8, SPEAKER = 9, PICTURE = 10, GAMEPAD = 11, CAST = 12;
+    static final int WIFI = 0, BLUETOOTH = 1, DISPLAY = 2, SETTINGS = 3, BOOST = 4, TUNE = 5, FILES = 6, MIC = 7, PHONE = 8, SPEAKER = 9, PICTURE = 10, GAMEPAD = 11, CAST = 12,
+            SUN = 13, MOON = 14, CLOUD = 15, PARTLY = 16, RAIN = 17, STORM = 18, SNOW = 19, FOG = 20;
 
     private final int type;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -175,10 +176,90 @@ final class Glyph extends Drawable {
                 c.drawRoundRect(rf, 2.5f, 2.5f, p);
                 c.drawLine(11, 18.5f, 13, 18.5f, p);
                 break;
+            case SUN:
+                sun(c, 12, 12, 4.5f, 7.5f, 10f);
+                break;
+            case MOON: {
+                fill();
+                Path a = new Path(), cut = new Path();
+                a.addCircle(12, 12, 8f, Path.Direction.CW);
+                cut.addCircle(16.5f, 8.5f, 7f, Path.Direction.CW);
+                a.op(cut, Path.Op.DIFFERENCE);
+                c.drawPath(a, p);
+                break;
+            }
+            case CLOUD:
+                cloud(c, 0, 1);
+                break;
+            case PARTLY:
+                cloudPath(1.5f, 3);
+                c.save();
+                c.clipPath(path, android.graphics.Region.Op.DIFFERENCE);   // the sun peeks from behind the cloud
+                sun(c, 8.5f, 8.5f, 3f, 5f, 6.8f);
+                c.restore();
+                cloud(c, 1.5f, 3);
+                break;
+            case RAIN:
+                cloud(c, 0, -2.5f);
+                c.drawLine(8.5f, 18.5f, 7.5f, 21.5f, p);
+                c.drawLine(12.5f, 18.5f, 11.5f, 21.5f, p);
+                c.drawLine(16.5f, 18.5f, 15.5f, 21.5f, p);
+                break;
+            case STORM:
+                cloud(c, 0, -2.5f);
+                path.reset();
+                path.moveTo(13, 17);
+                path.lineTo(10.5f, 20);
+                path.lineTo(13.5f, 20);
+                path.lineTo(11, 23);
+                c.drawPath(path, p);
+                break;
+            case SNOW:
+                cloud(c, 0, -2.5f);
+                fill();
+                c.drawCircle(8.5f, 20, 1.1f, p);
+                c.drawCircle(12.5f, 21.5f, 1.1f, p);
+                c.drawCircle(16.5f, 20, 1.1f, p);
+                break;
+            case FOG:
+                c.drawLine(4, 8, 20, 8, p);
+                c.drawLine(3, 12, 19, 12, p);
+                c.drawLine(5, 16, 21, 16, p);
+                c.drawLine(7, 20, 17, 20, p);
+                break;
             default:
                 break;
         }
         c.restore();
+    }
+
+    private void sun(Canvas c, float cx, float cy, float r, float r1, float r2) {
+        c.drawCircle(cx, cy, r, p);
+        for (int i = 0; i < 8; i++) {
+            double a = Math.PI / 4 * i;
+            float x = (float) Math.cos(a), y = (float) Math.sin(a);
+            c.drawLine(cx + x * r1, cy + y * r1, cx + x * r2, cy + y * r2, p);
+        }
+    }
+
+    /** A cloud outline about 18 wide, its base at y = 18 (shifted by dx, dy), into {@code path}. */
+    private void cloudPath(float dx, float dy) {
+        path.reset();
+        path.moveTo(7 + dx, 18 + dy);
+        path.lineTo(17.5f + dx, 18 + dy);
+        rf.set(14 + dx, 11 + dy, 21 + dx, 18 + dy);
+        path.arcTo(rf, 90, -180);
+        rf.set(8 + dx, 6 + dy, 17 + dx, 15 + dy);
+        path.arcTo(rf, -10, -170);
+        rf.set(3.5f + dx, 11 + dy, 10.5f + dx, 18 + dy);
+        path.arcTo(rf, -90, -180);
+        path.close();
+    }
+
+    private void cloud(Canvas c, float dx, float dy) {
+        stroke(2f);
+        cloudPath(dx, dy);
+        c.drawPath(path, p);
     }
 
     private void stroke(float w) {

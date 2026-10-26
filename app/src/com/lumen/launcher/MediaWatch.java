@@ -189,10 +189,19 @@ public class MediaWatch extends NotificationListenerService {
             if (m == null) return;
             ContinueStore.Entry e = new ContinueStore.Entry();
             e.pkg = c.getPackageName();
+            if (ContinueStore.ignored(c.getPackageName())) return;      // YouTube stays out of Continue Watching
             e.title = first(m, MediaMetadata.METADATA_KEY_DISPLAY_TITLE, MediaMetadata.METADATA_KEY_TITLE);
             e.subtitle = first(m, MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE, MediaMetadata.METADATA_KEY_ARTIST,
                     MediaMetadata.METADATA_KEY_ALBUM);
             if (e.subtitle.equals(e.title)) e.subtitle = "";
+            // series: keep the show's name and "S5 E14", not the episode's own name (one card per show)
+            String[] se = ContinueStore.showAndEpisode(e.title, e.subtitle,
+                    first(m, MediaMetadata.METADATA_KEY_ARTIST), first(m, MediaMetadata.METADATA_KEY_ALBUM),
+                    first(m, MediaMetadata.METADATA_KEY_DISPLAY_DESCRIPTION));
+            if (se[1].length() > 0) {
+                e.title = se[0];
+                e.subtitle = se[1];
+            }
             e.mediaId = first(m, MediaMetadata.METADATA_KEY_MEDIA_ID);
             e.uri = first(m, "android.media.metadata.MEDIA_URI");
             e.duration = Math.max(0, m.getLong(MediaMetadata.METADATA_KEY_DURATION));

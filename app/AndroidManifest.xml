@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.lumen.launcher"
-    android:versionCode="18"
-    android:versionName="7.1">
+    android:versionCode="19"
+    android:versionName="7.2">
 
     <!-- Target 30: the projector's security policy only lets Android 11-level apps reach the picture processor -->
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="30" />

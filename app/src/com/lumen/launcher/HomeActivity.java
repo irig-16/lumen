@@ -148,7 +148,8 @@ public class HomeActivity extends Activity {
     private FrameLayout hero;
     private LinearLayout heroText;
     private FrameLayout heroArt;
-    private TextView heroEyebrow, heroTitle, heroSub, timeView, dateView, ramChip, storageChip;
+    private TextView heroEyebrow, heroTitle, heroSub, timeView, dateView, ramChip, storageChip, weatherView;
+    private View weatherIcon;
     private ImageView heroBanner, heroIcon, heroGlyph;
     private FrameLayout heroPlate;
     private GradientDrawable heroPlateBg;
@@ -293,6 +294,7 @@ public class HomeActivity extends Activity {
         main.postDelayed(idleCheck, 30000);
         ScreenEngine.onHome(this);       // Auto Picture: back to your everyday picture
         refreshContinue();
+        refreshWeather(false);
         if (updater != null) {
             main.removeCallbacks(quietUpdateCheck);
             main.postDelayed(quietUpdateCheck, 20000); // once the network is up; then every 6 h
@@ -697,8 +699,23 @@ public class HomeActivity extends Activity {
         bar.setClipChildren(false);
         bar.setMinimumHeight(dp(50));
 
+        LinearLayout left = new LinearLayout(this);
+        left.setOrientation(LinearLayout.HORIZONTAL);
+        left.setGravity(Gravity.CENTER_VERTICAL);
         dateView = text("", 15, C_SUB);
-        bar.addView(dateView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        left.addView(dateView);
+        weatherIcon = new View(this);
+        weatherIcon.setVisibility(View.GONE);
+        LinearLayout.LayoutParams wilp = new LinearLayout.LayoutParams(dp(20), dp(20));
+        wilp.leftMargin = dp(18);
+        wilp.rightMargin = dp(7);
+        left.addView(weatherIcon, wilp);
+        weatherView = text("", 15, C_SUB);
+        weatherView.setSingleLine(true);
+        weatherView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        left.addView(weatherView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        bar.addView(left, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        showWeather();
 
         addQuick(bar, Glyph.MIC, "Voice", "Press OK and speak a command", "voice");
         addQuick(bar, Glyph.SPEAKER, "Sound Studio", "Cinema, dialogue, music and night sound", "sound");
@@ -991,6 +1008,94 @@ public class HomeActivity extends Activity {
         boolean h24 = store.getBool(S_24H, true);
         timeView.setText(new SimpleDateFormat(h24 ? "HH:mm" : "h:mm", Locale.getDefault()).format(now));
         dateView.setText(new SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(now));
+        if (resumed) refreshWeather(false);   // runs at most every 30 minutes
+    }
+
+    // ---------------------------------------------------------------- weather
+
+    private static final long WEATHER_EVERY = 30 * 60 * 1000L, PLACE_EVERY = 12 * 3600 * 1000L;
+    private boolean weatherBusy;
+
+    private boolean weatherOn() {
+        return store.getBool("weather", true);
+    }
+
+    /** Draws the last known weather next to the date. */
+    private void showWeather() {
+        if (weatherView == null) return;
+        long at = store.getLong("wx_at", 0);
+        boolean fresh = at > 0 && System.currentTimeMillis() - at < 3 * 3600 * 1000L;
+        if (!weatherOn() || !fresh) {
+            weatherView.setText("");
+            weatherIcon.setVisibility(View.GONE);
+            return;
+        }
+        int code = (int) store.getLong("wx_code", 0);
+        boolean day = store.getBool("wx_day", true);
+        weatherIcon.setBackground(new Glyph(WeatherFeed.glyphFor(code, day), C_SUB));
+        weatherIcon.setVisibility(View.VISIBLE);
+        String city = store.getString("wx_city", "");
+        weatherView.setText(store.getLong("wx_temp", 0) + "°  " + WeatherFeed.describe(code)
+                + "   H " + store.getLong("wx_high", 0) + "°  L " + store.getLong("wx_low", 0) + "°"
+                + (city.length() > 0 ? "   ·   " + city : ""));
+    }
+
+    /** Fetches the weather when it's older than 30 minutes (location: every 12 hours). */
+    private void refreshWeather(boolean force) {
+        if (!weatherOn() || weatherBusy) return;
+        if (!force && System.currentTimeMillis() - store.getLong("wx_at", 0) < WEATHER_EVERY) return;
+        if (HeatGuard.get(this).cooling()) return;          // no extra work while it cools down
+        weatherBusy = true;
+        final boolean newPlace = force || System.currentTimeMillis() - store.getLong("wx_place_at", 0) > PLACE_EVERY
+                || store.getString("wx_lat", "").length() == 0;
+        final String lat = store.getString("wx_lat", ""), lon = store.getString("wx_lon", ""), city = store.getString("wx_city", "");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    WeatherFeed.Place p;
+                    if (newPlace) {
+                        p = WeatherFeed.locate();
+                    } else {
+                        p = new WeatherFeed.Place();
+                        p.lat = Double.parseDouble(lat);
+                        p.lon = Double.parseDouble(lon);
+                        p.city = city;
+                    }
+                    final WeatherFeed.Place place = p;
+                    final WeatherFeed.Now n = WeatherFeed.forecast(p);
+                    main.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            weatherBusy = false;
+                            if (newPlace) {
+                                store.setString("wx_lat", String.valueOf(place.lat));
+                                store.setString("wx_lon", String.valueOf(place.lon));
+                                store.setString("wx_city", place.city);
+                                store.setLong("wx_place_at", System.currentTimeMillis());
+                            }
+                            store.setLong("wx_temp", n.temp);
+                            store.setLong("wx_high", n.high);
+                            store.setLong("wx_low", n.low);
+                            store.setLong("wx_code", n.code);
+                            store.setBool("wx_day", n.day);
+                            store.setLong("wx_at", System.currentTimeMillis());
+                            showWeather();
+                        }
+                    });
+                } catch (Exception e) {
+                    main.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            weatherBusy = false;
+                            store.setLong("wx_at", Math.max(store.getLong("wx_at", 0),
+                                    System.currentTimeMillis() - WEATHER_EVERY + 10 * 60 * 1000L)); // retry in 10 min
+                            showWeather();
+                        }
+                    });
+                }
+            }
+        }, "lumen-weather").start();
     }
 
     private void updateStats() {
@@ -1274,6 +1379,14 @@ public class HomeActivity extends Activity {
         actions.add(new Runnable() { public void run() {
             store.setBool(S_MOTION, !motion);
             render(null, false);
+            showLauncherSettings();
+        } });
+        final boolean wx = weatherOn();
+        labels.add("Weather next to the date:  " + onOff(wx));
+        actions.add(new Runnable() { public void run() {
+            store.setBool("weather", !wx);
+            if (!wx) refreshWeather(true);
+            showWeather();
             showLauncherSettings();
         } });
         labels.add("24-hour clock:  " + onOff(h24));
@@ -2736,7 +2849,8 @@ public class HomeActivity extends Activity {
                         contentItems.put(id, new ContentItem(ContentItem.CW, e.key, e.title,
                                 "CONTINUE WATCHING  ·  " + owner.label.toUpperCase(Locale.ROOT), meta.toString()));
                     }
-                    cards.add(new AppInfo(id, e.title, null, img, owner.color, null, false));
+                    boolean episode = e.subtitle.matches("S\\d+( E\\d+)?|E\\d+");
+                    cards.add(new AppInfo(id, episode ? e.title + "  ·  " + e.subtitle : e.title, null, img, owner.color, null, false));
                 }
                 main.post(new Runnable() {
                     @Override

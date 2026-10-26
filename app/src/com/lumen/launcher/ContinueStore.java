@@ -82,6 +82,84 @@ final class ContinueStore {
     private ContinueStore() {
     }
 
+    /** YouTube isn't a "continue watching" app: it's left out of the row. */
+    static boolean ignored(String pkg) {
+        String p = pkg.toLowerCase(Locale.ROOT);
+        return p.contains("youtube") || p.contains("smarttube") || p.equals("com.teamsmart.videomanager.tv");
+    }
+
+    // ------------------------------------------------------------------ show · season · episode
+
+    private static final java.util.regex.Pattern[] SE = {
+            java.util.regex.Pattern.compile("(?i)\\bS(?:eason)?\\s*0*(\\d{1,3})\\s*[:·.,\\-\\s]*\\s*E(?:p(?:isode)?\\.?)?\\s*0*(\\d{1,4})\\b"),
+            java.util.regex.Pattern.compile("(?i)\\bSeason\\s*0*(\\d{1,3})\\b[^\\d]{0,12}?\\b(?:Episode|Ep\\.?)\\s*0*(\\d{1,4})\\b"),
+            java.util.regex.Pattern.compile("\\b0*(\\d{1,2})x0*(\\d{1,3})\\b"),
+    };
+    private static final java.util.regex.Pattern EP_ONLY =
+            java.util.regex.Pattern.compile("(?i)\\b(?:Episode|Ep\\.?|E)\\s*0*(\\d{1,4})\\b");
+    private static final java.util.regex.Pattern SEASON_ONLY =
+            java.util.regex.Pattern.compile("(?i)\\b(?:Season|S)\\s*0*(\\d{1,3})\\b");
+
+    /**
+     * Turns what an app publishes ("Ozymandias" + "Breaking Bad · S5:E14", "Breaking Bad: Season 5: Ozymandias"…)
+     * into {show, "S5 E14"}: the series name and the season/episode, never the episode's own name.
+     * Films come back unchanged with an empty second part. Pure, testable.
+     */
+    static String[] showAndEpisode(String title, String... others) {
+        List<String> fields = new ArrayList<String>();
+        fields.add(title == null ? "" : title.trim());
+        for (String o : others) if (o != null && o.trim().length() > 0) fields.add(o.trim());
+        for (int f = 0; f < fields.size(); f++) {
+            String t = fields.get(f);
+            for (java.util.regex.Pattern pat : SE) {
+                java.util.regex.Matcher m = pat.matcher(t);
+                if (!m.find()) continue;
+                String se = "S" + Integer.parseInt(m.group(1)) + " E" + Integer.parseInt(m.group(2));
+                String before = clean(t.substring(0, m.start()));
+                String show = before.length() > 0 ? before : otherField(fields, f);
+                return new String[]{show.length() > 0 ? show : clean(t.substring(m.end())), se};
+            }
+        }
+        // "Season 5" in one field and "Episode 14" in another
+        String season = "", ep = "";
+        int seasonField = -1;
+        for (int f = 0; f < fields.size(); f++) {
+            java.util.regex.Matcher m = SEASON_ONLY.matcher(fields.get(f));
+            if (season.length() == 0 && m.find() && fields.get(f).toLowerCase(Locale.ROOT).contains("season")) {
+                season = String.valueOf(Integer.parseInt(m.group(1)));
+                seasonField = f;
+            }
+            java.util.regex.Matcher e = EP_ONLY.matcher(fields.get(f));
+            if (ep.length() == 0 && e.find() && fields.get(f).toLowerCase(Locale.ROOT).matches(".*\\b(episode|ep\\.?)\\s*\\d.*"))
+                ep = String.valueOf(Integer.parseInt(e.group(1)));
+        }
+        if (season.length() > 0 || ep.length() > 0) {
+            String se = (season.length() > 0 ? "S" + season : "") + (ep.length() > 0 ? (season.length() > 0 ? " E" : "E") + ep : "");
+            String show = "";
+            if (seasonField >= 0) {       // "Breaking Bad: Season 5: Ozymandias" → what comes before "Season"
+                java.util.regex.Matcher m = SEASON_ONLY.matcher(fields.get(seasonField));
+                if (m.find()) show = clean(fields.get(seasonField).substring(0, m.start()));
+            }
+            if (show.length() == 0) show = otherField(fields, seasonField >= 0 ? seasonField : 0);
+            return new String[]{show.length() > 0 ? show : fields.get(0), se};
+        }
+        return new String[]{fields.get(0), ""};
+    }
+
+    /** The first field other than {@code skip} that isn't itself an episode marker. */
+    private static String otherField(List<String> fields, int skip) {
+        for (int i = 1; i < fields.size(); i++) {
+            if (i == skip) continue;
+            String c = clean(fields.get(i));
+            if (c.length() > 0 && !c.matches("(?i)(season|episode|ep\\.?|s|e)?\\s*\\d+")) return c;
+        }
+        return skip == 0 ? "" : clean(fields.get(0));
+    }
+
+    private static String clean(String s) {
+        return s.replaceAll("^[\\s:·.,|\\-–—]+|[\\s:·.,|\\-–—]+$", "").trim();
+    }
+
     static String keyFor(String pkg, String title) {
         return pkg + "|" + title.trim().toLowerCase(Locale.ROOT);
     }
@@ -155,7 +233,7 @@ final class ContinueStore {
 
     /** Records what's playing. Keeps the newest few per app and drops finished films. */
     static void record(Context c, Entry e, Bitmap art, boolean notify) {
-        if (e.title.length() == 0) return;
+        if (e.title.length() == 0 || ignored(e.pkg)) return;
         load(c);
         e.key = keyFor(e.pkg, e.title);
         synchronized (ContinueStore.class) {
@@ -246,7 +324,17 @@ final class ContinueStore {
             }
         }
         List<Entry> out = new ArrayList<Entry>();
-        for (Entry e : merged.values()) if (!isHidden(c, e)) out.add(e);
+        for (Entry e : merged.values()) {
+            if (isHidden(c, e) || ignored(e.pkg)) continue;
+            if (!e.watchNext) {           // entries saved by older Lumen versions: show name + S/E only
+                String[] se = showAndEpisode(e.title, e.subtitle);
+                if (se[1].length() > 0) {
+                    e.title = se[0];
+                    e.subtitle = se[1];
+                }
+            }
+            out.add(e);
+        }
         Collections.sort(out, NEWEST);
         return out.size() > MAX ? new ArrayList<Entry>(out.subList(0, MAX)) : out;
     }
@@ -278,9 +366,10 @@ final class ContinueStore {
                 e.title = show.length() > 0 ? show : ep;
                 StringBuilder sub = new StringBuilder();
                 if (s.length() > 0) sub.append('S').append(s);
+                // (the episode's own name isn't shown)
                 if (n.length() > 0) sub.append(sub.length() > 0 ? " E" : "E").append(n);
-                if (ep.length() > 0 && !ep.equals(e.title)) sub.append(sub.length() > 0 ? " · " : "").append(ep);
                 e.subtitle = sub.toString();
+                if (ignored(pkg)) continue;
                 e.intentUri = str(cur, "intent_uri");
                 e.position = lng(cur, "last_playback_position_millis");
                 e.duration = lng(cur, "duration_millis");
@@ -318,7 +407,10 @@ final class ContinueStore {
 
     // ------------------------------------------------------------------ artwork
 
-    /** Saves a 16:9 crop (480×270) of the artwork; returns its path. */
+    /**
+     * Saves the artwork fitted into a 16:9 card (480×270) without cutting it: the whole picture in the middle,
+     * over a soft, darkened blow-up of itself. Returns its path.
+     */
     static String saveArt(Context c, String key, Bitmap src) {
         try {
             String name = (key.startsWith("wn_") ? "wn_" + Integer.toHexString(key.substring(3).hashCode())
@@ -327,11 +419,27 @@ final class ContinueStore {
             Bitmap out = Bitmap.createBitmap(480, 270, Bitmap.Config.ARGB_8888);
             Canvas cv = new Canvas(out);
             int w = src.getWidth(), h = src.getHeight();
-            Rect from;
-            if (w * 9 > h * 16) { int nw = h * 16 / 9; from = new Rect((w - nw) / 2, 0, (w + nw) / 2, h); }
-            else { int nh = w * 9 / 16; from = new Rect(0, (h - nh) / 2, w, (h + nh) / 2); }
-            Paint p = new Paint(Paint.FILTER_BITMAP_FLAG);
-            cv.drawBitmap(src, from, new Rect(0, 0, 480, 270), p);
+            Paint p = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
+            boolean wide = Math.abs(w * 9 - h * 16) <= w / 20;     // already 16:9 (±5 %): use it whole
+            if (wide) {
+                cv.drawBitmap(src, null, new Rect(0, 0, 480, 270), p);
+            } else {
+                // backdrop: the picture scaled to cover, blurred by shrinking, then darkened
+                Bitmap tiny = Bitmap.createScaledBitmap(src, 16, Math.max(1, 16 * h / Math.max(1, w)), true);
+                Rect cover;
+                if (w * 9 > h * 16) { int nw = h * 16 / 9; cover = new Rect((w - nw) / 2, 0, (w + nw) / 2, h); }
+                else { int nh = w * 9 / 16; cover = new Rect(0, (h - nh) / 2, w, (h + nh) / 2); }
+                Rect tinyCover = new Rect(cover.left * tiny.getWidth() / w, cover.top * tiny.getHeight() / h,
+                        Math.max(cover.left * tiny.getWidth() / w + 1, cover.right * tiny.getWidth() / w),
+                        Math.max(cover.top * tiny.getHeight() / h + 1, cover.bottom * tiny.getHeight() / h));
+                cv.drawBitmap(tiny, tinyCover, new Rect(0, 0, 480, 270), p);
+                tiny.recycle();
+                cv.drawColor(0x8C000000);
+                // the whole picture, fitted
+                float s = Math.min(480f / w, 270f / h);
+                int dw = Math.round(w * s), dh = Math.round(h * s);
+                cv.drawBitmap(src, null, new Rect((480 - dw) / 2, (270 - dh) / 2, (480 + dw) / 2, (270 + dh) / 2), p);
+            }
             FileOutputStream o = new FileOutputStream(f);
             out.compress(Bitmap.CompressFormat.JPEG, 86, o);
             o.close();
