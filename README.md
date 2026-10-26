@@ -39,7 +39,7 @@ From then on Lumen updates itself: when a new version is published, the projecto
 ## How updates work
 `ota/update.json` on `main` is the update channel. It names the newest version and points at the signed `ota/Lumen.apk`:
 ```json
-{"versionCode": 18, "versionName": "7.1", "url": "https://raw.githubusercontent.com/irig-16/lumen/main/ota/Lumen.apk", "sha256": "…", "notes": "…", "keyProxy": "https://lumen-keys.….workers.dev"}
+{"versionCode": 18, "versionName": "7.1", "url": "https://raw.githubusercontent.com/irig-16/lumen/main/ota/Lumen.apk", "sha256": "…", "notes": "…", "keyProxy": "https://lumen-keys.spamcircle68.workers.dev"}
 ```
 Projectors check it at startup and every 6 hours. Before installing, Lumen checks the package name, that the version is newer, the signature and the SHA-256; Android then refuses anything not signed with the release key.
 Maintainers publish with `app/tools/publish_update.sh "What's new"` and a push; a GitHub Release with the APK and the toolkit is created automatically.
