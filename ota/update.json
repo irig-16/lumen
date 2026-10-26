@@ -1,9 +1,9 @@
 {
-  "versionCode": 18,
-  "versionName": "7.1",
+  "versionCode": 19,
+  "versionName": "7.2",
   "url": "https://raw.githubusercontent.com/irig-16/lumen/main/ota/Lumen.apk",
-  "sha256": "0fd0f2f78cda6c2314b292afa44c51a8e61a634fcba4de69fdfb04aeac1429aa",
-  "size": 414570,
-  "notes": "Lumen 7.1: trending and Lumen Window work through Lumen's private key service; no API keys ship in the app.",
+  "sha256": "d2ac25efa2decbc5969ff62a742626aa7c30f6e787ca4d1139686f350bf2ff78",
+  "size": 418666,
+  "notes": "Lumen 7.2: weather next to the date; Continue Watching shows the show name with season and episode, fits the artwork, and leaves out YouTube; Vivid is a little less bright and saturated.",
   "keyProxy": "https://lumen-keys.spamcircle68.workers.dev"
 }
