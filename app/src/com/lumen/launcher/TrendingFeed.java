@@ -48,10 +48,11 @@ final class TrendingFeed {
     }
 
     static String url(String key, String region, int max) throws IOException {
-        return "https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics"
+        String u = "https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics"
                 + "&chart=mostPopular&maxResults=" + max
-                + "&regionCode=" + URLEncoder.encode(region, "UTF-8")
-                + "&key=" + URLEncoder.encode(key, "UTF-8");
+                + "&regionCode=" + URLEncoder.encode(region, "UTF-8");
+        if (ApiProxy.is(key)) return ApiProxy.route(key, u);
+        return u + "&key=" + URLEncoder.encode(key, "UTF-8");
     }
 
     /** Network call: returns the raw JSON (throws with YouTube's own error message on failure). */

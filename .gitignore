@@ -1,8 +1,6 @@
 # Secrets: never commit
 *.keystore
 *.jks
-keys.local
-app/src/com/lumen/launcher/BuiltInKeys.java
 
 # Build output
 app/build/

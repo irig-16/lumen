@@ -49,8 +49,7 @@ Netflix and Prime Video don't publish their charts or let other apps read your a
 - On a trending card, press **MENU** for *Hide this row* or *Turn off all trending*.
 - Saying "what's trending" turns them back on.
 
-**Keys.** The public builds of Lumen carry no API keys: enter your own on the phone remote (More → Trending → Keys and country) and they stay through every update.
-A private build can have keys built in (see *Build from source*); on first start Lumen saves them to its settings, so they keep working after over-the-air updates to public builds.
+**Keys.** Lumen ships with no API keys. Out of the box, trending, "where to watch" and Lumen Window go through **Lumen's key service** ([`proxy/`](../proxy/README.md)), a small Cloudflare Worker that adds the keys on its side and keeps them private. If you enter your own keys on the phone remote (More → Trending → Keys and country), Lumen uses those directly instead.
 
 **Getting your own keys (free).** Paste them on the phone remote and tap **Save**.
 1. **YouTube:** on a computer open console.cloud.google.com, create a project, enable **YouTube Data API v3**, then **Credentials → Create credentials → API key**. Each refresh uses 1 of the 10,000 free daily requests.
@@ -371,7 +370,7 @@ apt install aapt dalvik-exchange android-sdk-platform-23 apksigner zipalign defa
 ```
 Then run `./build.sh` in `app/`.
 - **Signing.** Without `lumen-release.keystore` the script makes a new key for you. Your build works on your projector, but can't update a Lumen installed from this repo's releases (Android only accepts updates signed with the same key). The official key is never stored in the repo.
-- **API keys.** Optional: put `LUMEN_YOUTUBE_KEY=…`, `LUMEN_TMDB_KEY=…` and `LUMEN_PIXABAY_KEY=…` in `app/keys.local` (ignored by git) to build them in. Never publish a build with keys built in: anyone with the APK can read them.
+- **API keys.** None are built in, ever. Your build uses the key service named in the update channel, or keys entered on the phone remote.
 - **Tests.** `javac -cp build/classes -d /tmp/t test/ParserTest.java && java -cp /tmp/t:build/classes com.lumen.launcher.ParserTest`
 
 ## Design references

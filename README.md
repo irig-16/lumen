@@ -39,7 +39,7 @@ From then on Lumen updates itself: when a new version is published, the projecto
 ## How updates work
 `ota/update.json` on `main` is the update channel. It names the newest version and points at the signed `ota/Lumen.apk`:
 ```json
-{"versionCode": 17, "versionName": "7.0", "url": "https://raw.githubusercontent.com/irig-16/lumen/main/ota/Lumen.apk", "sha256": "…", "notes": "…"}
+{"versionCode": 18, "versionName": "7.1", "url": "https://raw.githubusercontent.com/irig-16/lumen/main/ota/Lumen.apk", "sha256": "…", "notes": "…", "keyProxy": "https://lumen-keys.….workers.dev"}
 ```
 Projectors check it at startup and every 6 hours. Before installing, Lumen checks the package name, that the version is newer, the signature and the SHA-256; Android then refuses anything not signed with the release key.
 Maintainers publish with `app/tools/publish_update.sh "What's new"` and a push; a GitHub Release with the APK and the toolkit is created automatically.
@@ -49,6 +49,7 @@ Maintainers publish with `app/tools/publish_update.sh "What's new"` and a push; 
 app/        Lumen's source (plain SDK build: aapt, javac, dx; no Gradle)
 lumenos/    the Windows toolkit (.bat) and the shell scripts it runs on the projector
 ota/        the update channel: update.json + the signed Lumen.apk
+proxy/      Lumen's key service: a Cloudflare Worker that holds the API keys privately
 ```
 
 ## Build
@@ -56,7 +57,10 @@ ota/        the update channel: update.json + the signed Lumen.apk
 sudo apt install aapt dalvik-exchange android-sdk-platform-23 apksigner zipalign default-jdk-headless
 cd app && ./build.sh
 ```
-Your build is signed with your own key, so it installs on a clean projector but can't update one running the official Lumen. Public builds carry no API keys; enter your own YouTube and TMDB keys on the phone remote (free, see `app/README.md`).
+Your build is signed with your own key, so it installs on a clean projector but can't update one running the official Lumen.
+
+## API keys
+No API keys are in this repo or in any APK. Trending and Lumen Window work through **Lumen's key service** ([`proxy/`](proxy/README.md)): a Cloudflare Worker that keeps the keys in its encrypted secrets and only forwards Lumen's own calls. Anyone can also enter their own free keys on the phone remote.
 
 ## Safety
 - Nothing is flashed, and the bootloader and system partitions aren't touched. The boot-logo tool only adds files to the projector's writable logo area and checks the panel settings file before and after every change.

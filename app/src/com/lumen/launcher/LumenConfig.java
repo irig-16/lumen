@@ -13,6 +13,12 @@ final class LumenConfig {
      */
     static final String UPDATE_SOURCE = "https://raw.githubusercontent.com/" + REPO + "/main/ota/update.json";
 
+    /**
+     * Lumen's key service until the update channel names one: proxy/worker.js on Cloudflare, which adds the
+     * YouTube, TMDB and Pixabay keys on its side. Empty = none yet. The channel's "keyProxy" overrides it.
+     */
+    static final String KEY_PROXY = "";
+
     private LumenConfig() {
     }
 }

@@ -122,9 +122,10 @@ final class SceneLibrary {
     static String apiBase = "https://pixabay.com/api/videos/";
 
     static String searchUrl(String key, String query) throws IOException {
-        return apiBase + "?key=" + URLEncoder.encode(key, "UTF-8")
-                + "&q=" + URLEncoder.encode(query, "UTF-8")
+        String q = "q=" + URLEncoder.encode(query, "UTF-8")
                 + "&video_type=film&min_width=1280&safesearch=true&order=popular&per_page=30";
+        if (ApiProxy.is(key)) return ApiProxy.route(key, apiBase + "?" + q);
+        return apiBase + "?key=" + URLEncoder.encode(key, "UTF-8") + "&" + q;
     }
 
     /**

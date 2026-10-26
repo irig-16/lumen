@@ -35,11 +35,13 @@ final class WatchFinder {
     static Match find(String key, String query, String region) throws IOException {
         String q = URLEncoder.encode(query, "UTF-8");
         String u = "https://api.themoviedb.org/3/search/multi?query=" + q + "&include_adult=false&language=en-US&page=1";
-        if (!TmdbFeed.bearer(key)) u += "&api_key=" + URLEncoder.encode(key, "UTF-8");
+        if (ApiProxy.is(key)) u = ApiProxy.route(key, u);
+        else if (!TmdbFeed.bearer(key)) u += "&api_key=" + URLEncoder.encode(key, "UTF-8");
         Match m = best(TmdbFeed.get(u, key), query);
         if (m == null) return null;
         String p = "https://api.themoviedb.org/3/" + m.type + "/" + m.id + "/watch/providers";
-        if (!TmdbFeed.bearer(key)) p += "?api_key=" + URLEncoder.encode(key, "UTF-8");
+        if (ApiProxy.is(key)) p = ApiProxy.route(key, p);
+        else if (!TmdbFeed.bearer(key)) p += "?api_key=" + URLEncoder.encode(key, "UTF-8");
         providers(m, TmdbFeed.get(p, key), region);
         return m;
     }

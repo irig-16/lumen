@@ -83,6 +83,11 @@ final class Updater {
         notifyListeners();
     }
 
+    /** Lumen's key service (a proxy that adds the API keys on its side), as named by the update channel. */
+    String keyProxy() {
+        return sp.getString("key_proxy", LumenConfig.KEY_PROXY);
+    }
+
     boolean auto() {
         return sp.getBoolean("auto", true);
     }
@@ -199,6 +204,7 @@ final class Updater {
                 try {
                     UpdateFeed.Release r = UpdateFeed.check(source());
                     e.putLong("checked", System.currentTimeMillis()).putString("error", "");
+                    if (r.keyProxy != null) e.putString("key_proxy", r.keyProxy);   // Lumen's key service moves with the channel
                     if (r.newerThan(currentCode(), currentName())) {
                         e.putString("avail_name", r.versionName).putInt("avail_code", r.versionCode)
                                 .putString("avail_url", r.url).putString("avail_sha", r.sha256)

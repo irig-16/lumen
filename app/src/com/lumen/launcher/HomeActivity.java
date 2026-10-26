@@ -250,7 +250,7 @@ public class HomeActivity extends Activity {
             }
         };
         initUiSounds();
-        adoptBuiltInKeys();
+        dropAdoptedKeys();
         HeatGuard.get(this).start();     // CPU/GPU temperature watch (Lumen settings → Heat guard)
         initUpdates();
         java.io.File castDir = getExternalFilesDir(null);
@@ -2246,12 +2246,12 @@ public class HomeActivity extends Activity {
 
     private String trendKey() {
         String k = store.getString("yt_key", "").trim();
-        return k.length() > 0 ? k : BuiltInKeys.YOUTUBE;
+        return k.length() > 0 ? k : keyService();
     }
 
     private String tmdbKey() {
         String k = store.getString("tmdb_key", "").trim();
-        return k.length() > 0 ? k : BuiltInKeys.TMDB;
+        return k.length() > 0 ? k : keyService();
     }
 
     /** Manual country if the user set one; otherwise the country of the current Wi-Fi connection. */
@@ -3025,7 +3025,9 @@ public class HomeActivity extends Activity {
                 + "• YouTube: " + shelfStatus(ytShelf) + "\n"
                 + "• Netflix: " + shelfStatus(nfShelf) + "\n"
                 + "• Prime Video: " + shelfStatus(pvShelf) + "\n\n"
-                + "Set up on the phone remote's Trending card (free keys, a couple of minutes each):\n"
+                + (keyService().length() > 0 ? "These rows work out of the box through Lumen's key service. "
+                + "You can also use your own free keys on the phone remote's Trending card:\n"
+                : "Set up on the phone remote's Trending card (free keys, a couple of minutes each):\n")
                 + "YouTube: console.cloud.google.com → enable YouTube Data API v3 → Credentials → API key\n"
                 + "Netflix & Prime: themoviedb.org → Settings → API → request a free API key\n\n"
                 + "Netflix and Prime don't publish trending data or share your account, so these rows show what's "
@@ -3417,7 +3419,7 @@ public class HomeActivity extends Activity {
 
     private String pixabayKey() {
         String k = WindowView.prefs(this).getString("pix_key", "").trim();
-        return k.length() > 0 ? k : BuiltInKeys.PIXABAY;
+        return k.length() > 0 ? k : keyService();
     }
 
     private volatile String windowStatus = "";
@@ -3555,19 +3557,23 @@ public class HomeActivity extends Activity {
     };
 
     /**
-     * Public builds of Lumen carry no API keys. A private build (installed once over ADB) hands its
-     * built-in keys to the saved settings, so trending keeps working after over-the-air updates.
+     * No API keys ship with Lumen. Without your own keys, Lumen goes through its key service (a small proxy
+     * that holds the keys privately); its address comes with the update channel.
      */
-    private void adoptBuiltInKeys() {
-        if (store.getBool("keys_adopted", false)) return;
-        if (store.getString("yt_key", "").trim().length() == 0 && BuiltInKeys.YOUTUBE.length() > 0)
-            store.setString("yt_key", BuiltInKeys.YOUTUBE);
-        if (store.getString("tmdb_key", "").trim().length() == 0 && BuiltInKeys.TMDB.length() > 0)
-            store.setString("tmdb_key", BuiltInKeys.TMDB);
-        android.content.SharedPreferences wp = WindowView.prefs(this);
-        if (wp.getString("pix_key", "").trim().length() == 0 && BuiltInKeys.PIXABAY.length() > 0)
-            wp.edit().putString("pix_key", BuiltInKeys.PIXABAY).apply();
-        if (BuiltInKeys.YOUTUBE.length() > 0 || BuiltInKeys.TMDB.length() > 0) store.setBool("keys_adopted", true);
+    private String keyService() {
+        return ApiProxy.key(Updater.get(this).keyProxy());
+    }
+
+    /**
+     * Lumen 7.0 private builds copied their built-in keys into the settings. Those keys are retired:
+     * clear them once, so the key service takes over.
+     */
+    private void dropAdoptedKeys() {
+        if (!store.getBool("keys_adopted", false)) return;
+        store.setString("yt_key", "");
+        store.setString("tmdb_key", "");
+        WindowView.prefs(this).edit().remove("pix_key").apply();
+        store.setBool("keys_adopted", false);
     }
 
     private void initUpdates() {
@@ -3606,9 +3612,17 @@ public class HomeActivity extends Activity {
             @Override
             public void onUpdateState() {
                 maybePromptUpdate();
+                String ks = keyService();
+                if (!ks.equals(lastKeyService)) {          // the key service appeared or moved
+                    boolean first = lastKeyService != null;
+                    lastKeyService = ks;
+                    if (first && ks.length() > 0 && trendingOn()) refreshTrending(false);
+                }
             }
         });
     }
+
+    private String lastKeyService;
 
     /** True while an automatic prompt (update, overheating) is on screen. */
     private boolean promptOpen;

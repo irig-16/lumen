@@ -57,6 +57,7 @@ final class TmdbFeed {
                 + "?watch_region=" + region
                 + "&with_watch_providers=" + java.net.URLEncoder.encode(providers, "UTF-8")
                 + "&with_watch_monetization_types=flatrate&sort_by=popularity.desc&include_adult=false&language=en-US&page=1";
+        if (ApiProxy.is(key)) return ApiProxy.route(key, u);
         if (!bearer(key)) u += "&api_key=" + java.net.URLEncoder.encode(key, "UTF-8");
         return u;
     }

@@ -37,6 +37,7 @@ final class UpdateFeed {
         String notes = "";
         long size;
         String manifestUrl;         // GitHub only: the release's update.json, if attached
+        String keyProxy;            // Lumen's key service, when the channel names one (null = not mentioned)
 
         /** Is this newer than what's installed? */
         boolean newerThan(int code, String name) {
@@ -91,6 +92,7 @@ final class UpdateFeed {
                     r.versionCode = m.versionCode;
                     if (r.sha256.length() == 0) r.sha256 = m.sha256;
                     if (m.notes.length() > 0 && r.notes.length() == 0) r.notes = m.notes;
+                    r.keyProxy = m.keyProxy;
                 }
             } catch (IOException ignored) {
                 // the tag still tells us the version
@@ -138,6 +140,7 @@ final class UpdateFeed {
         r.url = str(TrendingFeed.Json.path(root, "url"));
         r.sha256 = str(TrendingFeed.Json.path(root, "sha256")).toLowerCase(Locale.ROOT);
         r.notes = firstLines(str(TrendingFeed.Json.path(root, "notes")), 400);
+        if (((Map<?, ?>) root).containsKey("keyProxy")) r.keyProxy = str(TrendingFeed.Json.path(root, "keyProxy"));
         r.size = (long) num(TrendingFeed.Json.path(root, "size"));
         if (!r.url.startsWith("https://")) return null;
         if (r.versionCode <= 0 && r.versionName.length() == 0) return null;
