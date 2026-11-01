@@ -1,0 +1,44 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><style>
+.top{display:flex;justify-content:space-between;align-items:flex-end}
+.chart{position:relative;margin-top:26px;height:236px}
+.axis{position:absolute;left:96px;right:10px;bottom:0;height:22px;border-top:1px solid var(--line)}
+.tick{position:absolute;top:6px;font-size:11px;color:var(--ink-3);transform:translateX(-50%);font-variant-numeric:tabular-nums}
+.lane{position:absolute;left:0;right:10px;height:86px}
+.lane .name{position:absolute;left:0;top:30px;width:86px;font-size:12px;color:var(--ink-2);font-weight:600}
+.rail{position:absolute;left:96px;right:0;top:36px;height:4px;border-radius:2px;background:#232831}
+.mk{position:absolute;top:28px;width:20px;height:20px;border-radius:50%;transform:translateX(-50%);border:2px solid var(--surface);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#111}
+.lab{position:absolute;font-size:11px;line-height:1.3;color:var(--ink-2);width:156px;transform:translateX(-50%);text-align:center}
+.lab b{display:block;color:var(--ink);font-size:11.5px}
+.up{top:-12px}.dn{top:54px;width:118px}
+</style></head><body><div class="card">
+<div class="top"><div><div class="eyebrow">Safer</div><h1>Heat guard steps in <span class="accent">before</span> the projector cuts out</h1>
+<div class="sub">The stock OS throttles quietly and switches off at 115&nbsp;&deg;C with no warning. Lumen watches the CPU and GPU and acts at three earlier points.</div></div></div>
+
+<div class="chart" id="c"></div>
+<div class="foot">CPU limits shown for the HY300 (its firmware switches off at 115&nbsp;&deg;C; the GPU at 110&nbsp;&deg;C, where Lumen acts 5&nbsp;&deg;C earlier). On other projectors Lumen reads the chip's own limits. If heat ever does switch it off, the next start says so.</div>
+</div>
+<script>
+const c=document.getElementById('c'), L=96, W=800-68-L-10, lo=70, hi=120;
+const x=t=>L+(t-lo)/(hi-lo)*W;
+function lane(top,name,marks){
+  const d=document.createElement('div');d.className='lane';d.style.top=top+'px';
+  d.innerHTML=`<div class="name">${name}</div><div class="rail"></div>`;
+  marks.forEach(m=>{
+    d.insertAdjacentHTML('beforeend',`<div class="mk" style="left:${x(m.t)}px;background:${m.c}">${m.i||''}</div>`+
+      `<div class="lab ${m.pos}" style="left:${x(m.t)}px"><b>${m.t}&deg;C ${m.h}</b>${m.s}</div>`);
+  });
+  c.appendChild(d);
+}
+lane(6,'Stock OS',[
+ {t:75,c:'#6b6f78',h:'',s:'slows down quietly',pos:'up'},
+ {t:85,c:'#6b6f78',h:'',s:'slows down harder',pos:'dn'},
+ {t:115,c:'var(--critical)',i:'!',h:'off',s:'switches off, no warning',pos:'up'}]);
+lane(118,'LumenOS',[
+ {t:100,c:'var(--warning)',i:'i',h:'notice',s:'keep the vents clear',pos:'up'},
+ {t:105,c:'var(--serious)',i:'~',h:'cool down',s:'background work paused',pos:'dn'},
+ {t:110,c:'var(--critical)',i:'II',h:'pause',s:'film paused + warning',pos:'up'},
+ {t:115,c:'#6b6f78',h:'',s:'its own switch-off',pos:'dn'}]);
+const ax=document.createElement('div');ax.className='axis';
+[70,80,90,100,110,120].forEach(t=>ax.insertAdjacentHTML('beforeend',`<div class="tick" style="left:${x(t)-L}px">${t}&deg;C</div>`));
+c.appendChild(ax);
+</script></body></html>

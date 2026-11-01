@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/images/hero.webp" alt="Lumen: a faster, ad-free, safer home for Android projectors. No flashing, fully reversible." width="800"></p>
+
 # Lumen
 
 **A fast, ad-free home screen and system toolkit for Android projectors.** It runs on any Android 6+ projector, and goes deepest on the HY300 / HY320 family (the 1 GB, 32-bit Android 11 projector on the Allwinner H713, sold under many brand names).
@@ -5,6 +7,28 @@
 Lumen replaces the stock launcher and its ads with a tvOS-style home screen. **LumenOS** is a set of Windows tools that clean up the projector around it. Nothing is flashed: every change goes through ADB and can be undone.
 
 Developed with ♥ by Radirig. Open source under the MIT licence.
+
+## Stock OS vs LumenOS
+
+<p align="center"><img src="docs/images/speed.png" alt="Faster: the GPU draws 921,600 pixels per frame instead of 2,073,600 (56% fewer) on the HY300, menus and app switches animate twice as quickly, up to 9 factory, ad-store and vendor apps are removed, the home screen has no ads, and leftover apps are cleared when a film starts with under 300 MB free." width="800"></p>
+
+<p align="center"><img src="docs/images/safety.png" alt="Safer: the stock OS slows down quietly at 75 and 85 °C and switches off at 115 °C with no warning. Lumen gives a notice at 100 °C, cools down at 105 °C and pauses the film with a warning at 110 °C, before the projector's own switch-off at 115 °C." width="800"></p>
+
+<p align="center"><img src="docs/images/secure.png" alt="Secure: every update is checked four ways before it installs (it's Lumen, it's newer, same signature, SHA-256 checksum). Stock OS shows ads, keeps vendor updaters that can flash the old firmware back and factory test tools, and has no newer firmware. LumenOS has no ads, blocks ad and tracker domains, removes vendor updaters and test tools, keeps API keys out of the app and flashes nothing." width="800"></p>
+
+| | Stock OS | LumenOS |
+|---|---|---|
+| Home screen | Vendor launcher with ads | Lumen, no ads |
+| Pixels drawn per frame (HY300) | 1920×1080 on a 1280×720 panel | 1280×720, 56% fewer |
+| Menu and app animations | 1× | 0.5×, twice as quick |
+| Ads and trackers in other apps | Allowed | Blocked system-wide (AdGuard DNS) |
+| Overheating | Throttles quietly, switches off at 115 °C | Notice at 100 °C, cools at 105 °C, pauses at 110 °C |
+| Updates | No newer firmware since 2024 | Lumen updates itself; each one checked by name, version, signature and SHA-256 |
+| Vendor updaters that can reflash stock (HY300) | Present | Removed |
+| Reversible | — | Yes: nothing is flashed, LumenOS Undo restores stock |
+| Android security patch level | Vendor's | Unchanged (only the vendor's firmware can raise it) |
+
+<sub>Figures are what LumenOS changes, not benchmarks: the pixel count comes from the panel and render resolution, and animation speed from Android's animation scales. 720p rendering, vendor-updater removal, keystone and boot logo apply to the HY300 / HY320 family. Ad blocking needs the 5-second unlock or the full install. The illustrations are built from <code>docs/illustrations/</code> (<code>node docs/illustrations/render.js &amp;&amp; python3 docs/illustrations/optimize.py</code>).</sub>
 
 ## What you get
 

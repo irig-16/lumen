@@ -1,0 +1,17 @@
+:root{
+  --surface:#111317; --surface-2:#181b21; --line:#2a2e36;
+  --ink:#f0efec; --ink-2:#c3c2b7; --ink-3:#8b8a83;
+  --lumen:#3987e5; --stock:#d95926; --ember:#ffb43e; --rose:#ff2d95;
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:transparent}
+body{font-family:Inter,"Segoe UI",Helvetica,Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+.card{width:800px;background:var(--surface);border-radius:22px;padding:30px 34px;position:relative;overflow:hidden;border:1px solid #1f232a}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+h1{font-size:26px;font-weight:600;letter-spacing:-.01em;margin-top:6px}
+h1 .accent{color:var(--ember)}
+.sub{font-size:13.5px;color:var(--ink-2);margin-top:6px;line-height:1.45}
+.foot{font-size:11px;color:var(--ink-3);margin-top:16px;line-height:1.5}
+.legend{display:flex;gap:18px;font-size:12px;color:var(--ink-2);align-items:center}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
