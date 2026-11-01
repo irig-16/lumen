@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# LumenOS keystone tuner for the HY300 (runs via adb shell).
+# LumenOS keystone tuner for the HY300 family / Allwinner H713 (runs via adb shell).
 #
 # The projector corrects keystone automatically from its tilt sensor: each time the
 # tilt changes by more than a threshold, the system recomputes the four-corner warp.
@@ -8,6 +8,16 @@
 # "reset" can't undo, and none of it flashes anything.
 #
 # Usage (the .bat passes one of these): status | stable | balanced | responsive | recorrect | reset
+
+# Only for the Allwinner H713 family: these settings live in that firmware's own properties/partitions.
+PLAT="$(getprop ro.board.platform) $(getprop ro.hardware)"
+case "$PLAT" in
+  *ares*|*sun50iw12*|*h713*) ;;
+  *) echo "  This tool is for Allwinner H713 projectors (the HY300 / HY320 family)."
+     echo "  This projector reports: $PLAT"
+     echo "  Nothing was changed. Use the projector's own settings menu for this."
+     exit 0 ;;
+esac
 
 B=/data/local/tmp/lumenos
 mkdir -p $B

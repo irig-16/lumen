@@ -32,13 +32,24 @@ import java.util.List;
 final class SelfSetup {
 
     static final String ADGUARD = "dns.adguard-dns.com";
-    // Bloatware Lumen offers to remove (the user confirms each): factory/aging tools, vendor OTA
-    // updaters (they can flash stock back), the ad store, the office suite.
+    // Bloatware Lumen offers to remove (the user confirms each): factory/aging tools, the ad store,
+    // the office suite. Safe on any projector: packages that aren't installed are simply skipped.
     static final String[] BLOAT = {
             "com.softwinner.dragonatt", "com.softwinner.dragonbox", "com.softwinner.agingdragonbox",
-            "com.htc.hyk_test", "com.htc.htcotaupdate", "android.rockchip.update.service",
-            "com.htc.storeos", "com.mobisystems.office", "com.android.egg",
+            "com.htc.hyk_test", "com.htc.storeos", "com.mobisystems.office", "com.android.egg",
     };
+    // Vendor OTA updaters: offered only on the HY300 family, whose stock updater can flash the old firmware
+    // back over LumenOS. On other projectors they stay, so the maker's own updates keep arriving.
+    static final String[] H713_UPDATERS = {"com.htc.htcotaupdate", "android.rockchip.update.service"};
+
+    /** The bloat list for this projector. */
+    static String[] bloatFor(Context c) {
+        if (!DeviceInfo.read(c).h713) return BLOAT;
+        String[] all = new String[BLOAT.length + H713_UPDATERS.length];
+        System.arraycopy(BLOAT, 0, all, 0, BLOAT.length);
+        System.arraycopy(H713_UPDATERS, 0, all, BLOAT.length, H713_UPDATERS.length);
+        return all;
+    }
 
     private SelfSetup() {
     }
@@ -91,7 +102,7 @@ final class SelfSetup {
 
     static int bloatInstalled(Context c) {
         int n = 0;
-        for (String p : BLOAT) if (isInstalled(c, p)) n++;
+        for (String p : bloatFor(c)) if (isInstalled(c, p)) n++;
         return n;
     }
 
@@ -263,7 +274,7 @@ final class SelfSetup {
     /** Opens each installed bloat app's uninstall dialog in turn (the user taps Uninstall). */
     static List<String> bloatToRemove(Context c) {
         List<String> out = new ArrayList<String>();
-        for (String p : BLOAT) if (isInstalled(c, p)) out.add(p);
+        for (String p : bloatFor(c)) if (isInstalled(c, p)) out.add(p);
         return out;
     }
 

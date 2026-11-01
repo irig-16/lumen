@@ -1,6 +1,6 @@
 # Lumen
 
-**A fast, ad-free home screen and system toolkit for the HY300 projector**, the 1 GB, 32-bit Android 11 projector on the Allwinner H713 that's sold under many brand names.
+**A fast, ad-free home screen and system toolkit for Android projectors.** It runs on any Android 6+ projector, and goes deepest on the HY300 / HY320 family (the 1 GB, 32-bit Android 11 projector on the Allwinner H713, sold under many brand names).
 
 Lumen replaces the stock launcher and its ads with a tvOS-style home screen. **LumenOS** is a set of Windows tools that clean up the projector around it. Nothing is flashed: every change goes through ADB and can be undone.
 
@@ -12,7 +12,7 @@ Developed with ♥ by Radirig. Open source under the MIT licence.
 - tvOS-style home screen: parallax cards, ambient light, a "First Light" startup intro with an original score
 - **Continue Watching** above **Trending** (YouTube, Netflix, Prime Video in your country)
 - **Lumen Imaging**: picture profiles that drive the projector's own picture processor (Natural, Cinema, HDR-style, Vivid, Game, Bright room), a 5-level **Detail engine**, and **Auto Picture** per app
-- **Heat guard**: watches CPU and GPU temperature and steps in before the projector's own 115 °C switch-off
+- **Heat guard**: watches CPU and GPU temperature and steps in before the projector's own switch-off (read from each chip's own thermal limits; 115 °C on the HY300)
 - **Sound Studio**, voice control (English, plus some Hinglish), a phone remote (scan a QR code), casting, **Lumen Window** living scenes
 - **Over-the-air updates** from this repository, with a prompt on the home screen
 
@@ -29,6 +29,21 @@ Developed with ♥ by Radirig. Open source under the MIT licence.
 | LumenOS-Undo.bat | Puts everything back |
 
 See [`lumenos/README.txt`](lumenos/README.txt) and [`app/README.md`](app/README.md) for the details.
+
+## Which projectors
+Lumen reads the chip, model, Android version, resolution and memory at start (shown in **About** and on the phone remote) and only turns on what that projector can do.
+
+| | Any Android 6+ projector | Allwinner | HY300 / HY320 (H713) |
+|---|:-:|:-:|:-:|
+| Home screen, apps, Continue Watching, Trending, weather | ✓ | ✓ | ✓ |
+| Voice search, phone remote, cast, Lumen Window, OTA updates | ✓ | ✓ | ✓ |
+| Heat guard (uses the chip's own trip points) | ✓ | ✓ | ✓ |
+| Picture profiles: brightness and warmth, plus the values for the projector's own picture menu | ✓ | ✓ | ✓ |
+| Direct picture engine (Detail engine, Auto Picture, exact contrast/colour) | | ✓ | ✓ |
+| LumenOS: debloat, Lumen as home, ad blocking (Android 9+), Speed, Thermals | ✓ | ✓ | ✓ |
+| LumenOS: 720p rendering, vendor updater removal, Keystone, Boot logo | | | ✓ |
+
+Tested on the HY300; the rest is built from public Android behaviour and is untested on real hardware, so reports from other projectors are welcome (open an issue with the line from **About**). On any other projector the HY300-only tools say so and change nothing; the installer prints which projector it found before it changes anything, and asks about resolution (Enter leaves it as it is).
 
 ## Install on a projector
 **The quick way (just the app).** Install `Lumen.apk` from the latest [release](../../releases/latest) — copy it to a USB stick and open it with the projector's file manager, or `adb install Lumen.apk`. On first launch Lumen shows **Setting up LumenOS**: a few taps make it the home screen and switch on updates, Continue Watching, the overheating warning, brightness and voice. Trending, weather and the picture engine work straight away. Lumen then updates itself over the air.

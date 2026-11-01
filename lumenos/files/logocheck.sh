@@ -3,6 +3,16 @@
 # projector and whether ADB could replace it. Writes nothing to those partitions;
 # it only copies any pictures it finds to /data/local/tmp/logocheck for the PC to pull.
 
+# Only for the Allwinner H713 family: these settings live in that firmware's own properties/partitions.
+PLAT="$(getprop ro.board.platform) $(getprop ro.hardware)"
+case "$PLAT" in
+  *ares*|*sun50iw12*|*h713*) ;;
+  *) echo "  This tool is for Allwinner H713 projectors (the HY300 / HY320 family)."
+     echo "  This projector reports: $PLAT"
+     echo "  Nothing was changed. Use the projector's own settings menu for this."
+     exit 0 ;;
+esac
+
 O=/data/local/tmp/logocheck
 rm -rf $O
 mkdir -p $O

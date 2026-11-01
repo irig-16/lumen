@@ -21,7 +21,7 @@ final class MirrorApps {
     private static final String[] KNOWN = {
             "com.softwinner.miracastReceiver", "com.softwinner.miracast", "com.allwinner.miracast", "com.aw.miracast",
             "com.ecloud.eshare.server", "com.eshare.server", "com.hpplay.happyplay.aw", "com.hpplay.happycast",
-            "com.hpplay.happyplay", "com.waxrain.airplaydmr", "com.waxrain.airplaydmr2", "com.google.android.apps.mediashell"};
+            "com.hpplay.happyplay", "com.droidlogic.miracast", "com.ionitech.airscreen", "com.waxrain.airplaydmr", "com.waxrain.airplaydmr2", "com.google.android.apps.mediashell"};
 
     private static final Pattern LOOKS_LIKE = Pattern.compile(
             "(?i)(miracast|airplay|air ?pin|airscreen|eshare|happy ?cast|lebo|screen ?cast|screen ?mirror|mirroring|"

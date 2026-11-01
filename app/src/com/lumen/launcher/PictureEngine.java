@@ -51,10 +51,24 @@ final class PictureEngine {
     private PictureEngine() {
     }
 
+    /** False on projectors whose chip has no Allwinner picture processor: Lumen then never probes for it. */
+    private static volatile boolean probe = true;
+    private static volatile String chipName = "";
+
+    /** Tells the engine which projector it's on (call before {@link #available}). */
+    static void configure(DeviceInfo d) {
+        probe = d.mayHavePictureProcessor();
+        chipName = d.chipLabel();
+    }
+
     /** Connects once. True if the picture processor answers. */
     static synchronized boolean available() {
         if (tried) return client != null || binder != null;
         tried = true;
+        if (!probe) {
+            why = "the direct picture control is for Allwinner projectors; this is " + chipName;
+            return false;
+        }
         try {
             Class<?> k = Class.forName(CLIENT);
             // retry=false: never block waiting for a service this firmware doesn't have

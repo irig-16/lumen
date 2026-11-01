@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# LumenOS thermal check for the HY300 - samples the CPU and GPU sensors live and
+# LumenOS thermal check for Android projectors - samples the CPU and GPU sensors live and
 # reports min / average / max, against the projector's own throttle limits.
 # Read-only: it changes nothing. Runs via adb shell.
 

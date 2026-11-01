@@ -1506,7 +1506,8 @@ public class HomeActivity extends Activity {
 
     private void showAbout() {
         android.text.SpannableStringBuilder m = new android.text.SpannableStringBuilder(
-                "A tvOS-inspired home screen for low-memory projectors.\n\n"
+                "A tvOS-inspired home screen for Android projectors.\n\n"
+                        + "This projector: " + DeviceInfo.read(this).summary() + "\n\n"
                         + "• Startup intro, parallax cards and ambient light\n"
                         + "• Trending on YouTube in the top shelf\n"
                         + "• Voice: the mic button, or talk from your phone\n"
@@ -1516,10 +1517,19 @@ public class HomeActivity extends Activity {
                         + "Running slow? Set Motion to Calm and Background to Pure black.\n\n");
         appendCredit(m);
         new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
-                .setTitle("Lumen 6.8")
+                .setTitle("Lumen " + versionName())
                 .setMessage(m)
                 .setPositiveButton("OK", null)
                 .show();
+    }
+
+    private String versionName() {
+        try {
+            String v = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+            return v == null ? "" : v;
+        } catch (android.content.pm.PackageManager.NameNotFoundException e) {
+            return "";
+        }
     }
 
     /** "Developed with ♥ by Radirig" with a pink heart. (♥ U+2665 renders on every Android version.) */
@@ -3110,6 +3120,7 @@ public class HomeActivity extends Activity {
         b.append(",\"trending\":").append(RemoteServer.json(trendStatus()));
         b.append(",\"screen\":\"").append(ScreenEngine.current(this)).append('"');
         b.append(",\"screenAuto\":").append(ScreenEngine.canBrightness(this) || ScreenEngine.canWarmth(this));
+        b.append(",\"device\":").append(DeviceInfo.read(this).json());
         b.append(",\"engine\":").append(ScreenEngine.engine());
         b.append(",\"detail\":").append(ScreenEngine.detail(this));
         b.append(",\"autoPic\":").append(ScreenEngine.auto(this));

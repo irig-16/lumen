@@ -14,8 +14,9 @@ import java.util.Locale;
 
 /**
  * Finds the projector's own picture menu (brightness, contrast, sharpness, colour temperature).
- * Every vendor names it differently, so we scan exported activities of system apps for names
- * like "PictureSettings" / "PqSetting" / "ImageMode" and fall back to Android's display settings.
+ * Every vendor names it differently (Allwinner, Amlogic "droidlogic", MediaTek, Rockchip, own-brand apps), so we
+ * scan exported activities of system apps for names like "PictureSettings" / "PqSetting" / "ImageMode" /
+ * "PictureQuality" and fall back to Android's display settings.
  */
 final class PictureSettings {
 
@@ -61,10 +62,11 @@ final class PictureSettings {
         int dot = n.lastIndexOf('.');
         String cls = dot >= 0 ? n.substring(dot + 1) : n;
         if (cls.contains("picturesetting") || cls.contains("picturemode") || cls.contains("pictureactivity")) return 10;
-        if (cls.contains("pqsetting") || cls.contains("pqactivity") || cls.equals("pq")) return 9;
-        if (cls.contains("imagesetting") || cls.contains("imagemode")) return 8;
+        if (cls.contains("pqsetting") || cls.contains("pqactivity") || cls.equals("pq") || cls.contains("picturequality")) return 9;
+        if (cls.contains("imagesetting") || cls.contains("imagemode") || cls.contains("imagequality") || cls.contains("videosetting")) return 8;
+        if (cls.contains("displaymode") || cls.contains("colorsetting") || cls.contains("coloursetting")) return 5;
         if (cls.contains("picture") && !cls.contains("inpicture") && !cls.contains("pip")) return 6;
-        if (cls.contains("projection") || cls.contains("keystone")) return 3;
+        if (cls.contains("projection") || cls.contains("keystone") || cls.contains("trapezoid") || cls.contains("imagecorrection")) return 3;
         return 0;
     }
 

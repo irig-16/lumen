@@ -346,7 +346,8 @@
       </details>
     </div>
 
-    <footer>Developed with <b>&#9829;</b> by Radirig</footer>
+    <p class="note" id="deviceLine" style="text-align:center;margin-top:28px"></p>
+    <footer style="margin-top:10px">Developed with <b>&#9829;</b> by Radirig</footer>
   </section>
 </main>
 
@@ -666,6 +667,7 @@
   });
   function renderSettings(st) {
     if (!st || st.region === undefined) return;
+    if (st.device && st.device.summary) $("deviceLine").textContent = "This projector: " + st.device.summary;
     online(true);
     $("trendCountry").textContent = st.country ? "· " + st.country : "";
     $("trendAll").textContent = st.allOn ? st.trending : "All rows hidden";

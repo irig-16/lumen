@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# LumenOS speed for the HY300: memory tuning and a faster start. Runs via adb shell.
+# LumenOS speed for Android projectors: memory tuning and a faster start. Runs via adb shell.
 #
 #   report  read-only: startup timeline, memory, and which apps wake up at every start
 #   apply   memory tuning + holds back the apps in the "can be held back" list + compiles apps

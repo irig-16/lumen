@@ -28,6 +28,17 @@ jobs:
           java -cp /tmp/t:build/classes com.lumen.launcher.ParserTest | tee /tmp/parser.txt
           ! grep -q '^FAIL' /tmp/parser.txt
 
+      - name: Projector compatibility tests (chip detection, heat limits)
+        working-directory: app
+        run: |
+          AJ=/usr/lib/android-sdk/platforms/android-23/android.jar
+          javac -nowarn -source 8 -target 8 -bootclasspath $AJ -cp build/classes -d /tmp/d test/DeviceTest.java
+          java -cp /tmp/d:build/classes:$AJ com.lumen.launcher.DeviceTest | tee /tmp/device.txt
+          ! grep -q '^FAIL' /tmp/device.txt
+
+      - name: Toolkit script syntax
+        run: for f in lumenos/files/*.sh; do sh -n "$f" || exit 1; done
+
       - uses: actions/upload-artifact@v4
         with:
           name: Lumen-ci-build

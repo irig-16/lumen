@@ -14,7 +14,7 @@ say() { echo "  $*"; echo "$*" >> $B/lumenos.log; }
 
 echo "[1/4] Bringing back removed apps"
 while read -r p; do
-  [ -n "$p" ] && cmd package install-existing --user 0 $p >/dev/null 2>&1 && say "restored $p"
+  [ -n "$p" ] && { cmd package install-existing --user 0 $p >/dev/null 2>&1 || pm install-existing --user 0 $p >/dev/null 2>&1; } && say "restored $p"
 done < $B/removed.txt
 
 echo "[2/4] Turning the stock launcher back on"
@@ -24,7 +24,7 @@ done < $B/disabled.txt
 first=$(head -n 1 $B/disabled.txt)
 if [ -n "$first" ]; then
   comp=$(cmd package query-activities --components -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null | grep "^$first/" | head -n 1)
-  [ -n "$comp" ] && cmd package set-home-activity "$comp" >/dev/null 2>&1 && say "home set back to $comp"
+  [ -n "$comp" ] && { cmd package set-home-activity "$comp" >/dev/null 2>&1 || pm set-home-activity "$comp" >/dev/null 2>&1; } && say "home set back to $comp"
 fi
 appops set $L SYSTEM_ALERT_WINDOW default
 pm revoke $L android.permission.WRITE_SECURE_SETTINGS 2>/dev/null

@@ -1,10 +1,10 @@
 @echo off
 setlocal
-title LumenOS for HY300
+title LumenOS
 cd /d "%~dp0"
 echo.
-echo   LumenOS for the HY300 projector
-echo   ===============================
+echo   LumenOS for Android projectors
+echo   ==============================
 echo.
 call :getadb || goto :fail
 set "IP=%~1"
@@ -28,7 +28,13 @@ echo   Installing Lumen...
 "%ADB%" %SEL% shell pm path com.lumen.launcher | find "package:" >nul || goto :fail
 "%ADB%" %SEL% push "%~dp0files\lumenos.sh" /data/local/tmp/lumenos.sh >nul || goto :fail
 "%ADB%" %SEL% push "%~dp0files\lumenos-undo.sh" /data/local/tmp/lumenos-undo.sh >nul
-"%ADB%" %SEL% shell sh /data/local/tmp/lumenos.sh || goto :fail
+echo.
+echo   Screen resolution: press Enter for automatic (HY300 family: 720p; any other projector: unchanged),
+echo   or type 720 or 1080 if you know your projector's real panel resolution.
+set "RES="
+set /p "RES=  Resolution [Enter = automatic]: "
+if "%RES%"=="" set "RES=auto"
+"%ADB%" %SEL% shell sh /data/local/tmp/lumenos.sh %RES% || goto :fail
 if not exist "%~dp0backup" mkdir "%~dp0backup"
 "%ADB%" %SEL% pull /data/local/tmp/lumenos "%~dp0backup" >nul 2>&1
 "%ADB%" %SEL% reboot

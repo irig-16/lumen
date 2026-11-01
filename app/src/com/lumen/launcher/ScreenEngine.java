@@ -120,6 +120,7 @@ final class ScreenEngine {
         worker().post(new Runnable() {
             @Override
             public void run() {
+                PictureEngine.configure(DeviceInfo.read(app));   // detection reads a few build properties: off the UI thread
                 engineUp = PictureEngine.available();
                 if (engineUp) applyNow(app, active(app), detail(app));
             }
@@ -444,8 +445,15 @@ final class ScreenEngine {
             return "Lumen Imaging is driving the projector's picture processor" + (auto(c) ? ". Auto Picture is on" : "");
         }
         boolean b = canBrightness(c), w = canWarmth(c);
+        String head;
+        if (!DeviceInfo.read(c).mayHavePictureProcessor()) {
+            // any other projector: presets do what Android allows, and give the menu values for the rest
+            head = DeviceInfo.read(c).chipLabel() + ": Lumen sets brightness and warmth here. ";
+            if (b && w) return head + "Set the other values below in the projector's own picture menu";
+            return head + "Allow automatic changes for brightness and warmth, and set the values below in the projector's picture menu";
+        }
         String why = PictureEngine.whyNot();
-        String head = "Picture processor not reachable (" + why + "). ";
+        head = "Picture processor not reachable (" + why + "). ";
         if (b && w) return head + "Brightness and warmth change automatically; set the rest in the projector's menu";
         return head + "Set these values in the projector's picture menu";
     }

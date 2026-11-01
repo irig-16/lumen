@@ -34,7 +34,9 @@ import java.util.regex.Pattern;
 
 /**
  * Heat guard: watches the projector's CPU and GPU temperature and steps in before its own
- * emergency shutdown (CPU 115 °C, GPU 110 °C on the HY300's firmware).
+ * emergency shutdown. The limits come from the projector's own thermal zones ("critical" trip point) when
+ * Android lets apps read them; otherwise CPU 115 °C / GPU 110 °C (the HY300 firmware's values, typical for
+ * ARM TV chips).
  *
  *   Warm      (limit − 15 °C, CPU 100 °C)  a short notice: keep the vents clear
  *   Cooling   (limit − 10 °C, CPU 105 °C)  frees memory and background work, lowers the light a step
@@ -51,8 +53,9 @@ final class HeatGuard {
     static final int NORMAL = 0, WARM = 1, COOLING = 2, CRITICAL = 3;
     static final String[] LEVEL_NAMES = {"Normal", "Warm", "Cooling down", "Too hot"};
 
-    /** The firmware's own shutdown limits (thermal_info_config.json). */
+    /** Default shutdown limits (the HY300 firmware's thermal_info_config.json); replaced by the chip's own when readable. */
     static final int CPU_LIMIT = 115, GPU_LIMIT = 110;
+    volatile int cpuLimit = CPU_LIMIT, gpuLimit = GPU_LIMIT;
     static final int[] MARGIN = {15, 10, 5};           // warm, cooling, critical: degrees below the limit
     static final int HYSTERESIS = 4;
 
@@ -184,7 +187,7 @@ final class HeatGuard {
         int lvl = NORMAL;
         for (int k = CRITICAL; k >= WARM; k--) {
             int cut = (k <= level) ? HYSTERESIS : 0;    // already at/above this level: need to drop further to leave it
-            if ((c > 0 && c >= threshold(CPU_LIMIT, k) - cut) || (g > 0 && g >= threshold(GPU_LIMIT, k) - cut)) {
+            if ((c > 0 && c >= threshold(cpuLimit, k) - cut) || (g > 0 && g >= threshold(gpuLimit, k) - cut)) {
                 lvl = k;
                 break;
             }
@@ -409,6 +412,42 @@ final class HeatGuard {
         return new int[]{-1, -1};
     }
 
+    /** Sensor names across chips: "cpu-thermal" (Allwinner, Rockchip), "soc_thermal" (Amlogic), "mtktscpu" (MediaTek)… */
+    static boolean isCpuZone(String type) {
+        String t = type == null ? "" : type.toLowerCase(Locale.ROOT);
+        return t.contains("cpu") || t.contains("soc") || t.equals("tsens_tz_sensor0") || t.contains("core") || t.contains("big")
+                || t.contains("little") || t.contains("board_thermal");
+    }
+
+    static boolean isGpuZone(String type) {
+        String t = type == null ? "" : type.toLowerCase(Locale.ROOT);
+        return t.contains("gpu") || t.contains("mali") || t.contains("g3d");
+    }
+
+    /** The zone's "critical" (or else highest "hot") trip point in °C, or -1 if unreadable / implausible. */
+    private static int criticalTrip(File zone) {
+        String[] types = new String[12], temps = new String[12];
+        for (int i = 0; i < 12; i++) {
+            types[i] = readLine(new File(zone, "trip_point_" + i + "_type"));
+            temps[i] = readLine(new File(zone, "trip_point_" + i + "_temp"));
+        }
+        return criticalFrom(types, temps);
+    }
+
+    /** Pure: picks the shutdown temperature from a zone's trip points (values in m°C or °C). Testable. */
+    static int criticalFrom(String[] types, String[] temps) {
+        int crit = -1, hot = -1;
+        for (int i = 0; i < types.length; i++) {
+            if (types[i] == null || temps[i] == null || temps[i].length() == 0) continue;
+            int v = milli(temps[i]);
+            if (v < 75 || v > 135) continue;                       // not a believable shutdown limit
+            String t = types[i].trim().toLowerCase(Locale.ROOT);
+            if (t.equals("critical")) crit = Math.max(crit, v);
+            else if (t.equals("hot")) hot = Math.max(hot, v);
+        }
+        return crit > 0 ? crit : hot;
+    }
+
     private int[] readSysfs() {
         if (!sysfsTried) {
             sysfsTried = true;
@@ -418,8 +457,14 @@ final class HeatGuard {
                     if (!z.getName().startsWith("thermal_zone")) continue;
                     String type = readLine(new File(z, "type")).toLowerCase(Locale.ROOT);
                     String p = new File(z, "temp").getPath();
-                    if (cpuZone == null && type.contains("cpu")) cpuZone = p;
-                    else if (gpuZone == null && (type.contains("gpu") || type.contains("mali"))) gpuZone = p;
+                    int crit = criticalTrip(z);
+                    if (gpuZone == null && isGpuZone(type)) {
+                        gpuZone = p;
+                        if (crit > 0) gpuLimit = crit;
+                    } else if (cpuZone == null && isCpuZone(type)) {
+                        cpuZone = p;
+                        if (crit > 0) cpuLimit = crit;
+                    }
                 }
             }
         }
@@ -548,9 +593,9 @@ final class HeatGuard {
                 + "Since Lumen started: min " + (sessionN > 0 ? sessionMin + "°C" : "–") + " · avg " + avg
                 + " · max " + (sessionMax > 0 ? sessionMax + "°C" : "–") + "\n\n"
                 + "What the heat guard does (CPU / GPU):\n"
-                + "• " + threshold(CPU_LIMIT, WARM) + " / " + threshold(GPU_LIMIT, WARM) + "°C  a short notice to keep the vents clear\n"
-                + "• " + threshold(CPU_LIMIT, COOLING) + " / " + threshold(GPU_LIMIT, COOLING) + "°C  cools down: background work paused, light lowered a step\n"
-                + "• " + threshold(CPU_LIMIT, CRITICAL) + " / " + threshold(GPU_LIMIT, CRITICAL) + "°C  pauses playback with a full-screen warning\n"
+                + "• " + threshold(cpuLimit, WARM) + " / " + threshold(gpuLimit, WARM) + "°C  a short notice to keep the vents clear\n"
+                + "• " + threshold(cpuLimit, COOLING) + " / " + threshold(gpuLimit, COOLING) + "°C  cools down: background work paused, light lowered a step\n"
+                + "• " + threshold(cpuLimit, CRITICAL) + " / " + threshold(gpuLimit, CRITICAL) + "°C  pauses playback with a full-screen warning\n"
                 + "• " + CPU_LIMIT + " / " + GPU_LIMIT + "°C  the projector switches itself off (its own protection)\n\n"
                 + "Reading from: " + source;
     }

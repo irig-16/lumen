@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# LumenOS logo installer for the HY300 (runs via adb shell).
+# LumenOS logo installer for the HY300 family / Allwinner H713 (runs via adb shell).
 #
 #  - Boot splash: the projector's loader shows a picture from the Reserve0 partition when
 #    its "advert" feature is on (it is: advert_enable = 1). We ADD advert.bmp and
@@ -10,6 +10,16 @@
 # Usage: install-black | install-ember | install-timing | install-hold <seconds|0>
 #        | restore | status
 # The PC pushes the pictures to /data/local/tmp/lumenlogo first.
+
+# Only for the Allwinner H713 family: these settings live in that firmware's own properties/partitions.
+PLAT="$(getprop ro.board.platform) $(getprop ro.hardware)"
+case "$PLAT" in
+  *ares*|*sun50iw12*|*h713*) ;;
+  *) echo "  This tool is for Allwinner H713 projectors (the HY300 / HY320 family)."
+     echo "  This projector reports: $PLAT"
+     echo "  Nothing was changed. Use the projector's own settings menu for this."
+     exit 3   # non-zero so the .bat stops before the timing steps ;;
+esac
 
 S=/data/local/tmp/lumenlogo
 R=/Reserve0

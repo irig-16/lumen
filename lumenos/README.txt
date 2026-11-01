@@ -1,24 +1,42 @@
-LumenOS for the HY300 projector
-===============================
+LumenOS for Android projectors
+==============================
 
-Turns the projector's own firmware (Android 11, December 2024 build) into a
-clean Lumen system. Nothing is flashed, so there is no risk of bricking it.
+Turns an Android projector's own firmware (Android 6 or later) into a
+clean Lumen system. Made on the HY300 / HY320 (Allwinner H713), and safe on
+any other Android projector: Xgimi, Wanbo, Dangbei, Yaber, Magcubic and
+unbranded ones on Amlogic, Rockchip, MediaTek, Realtek and other chips. Nothing is flashed, so there is no risk of bricking it.
 Every change can be undone with LumenOS-Undo.bat.
 
 WHAT IT DOES
   1. Removes bloatware: the factory test and aging tools, the vendor OTA
-     updaters (they could reinstall stock firmware), the ad-filled app store
-     and the office suite. They're removed for your user only, so Undo
+     updaters (HY300 family only: they could reinstall old stock firmware;
+     on other projectors the maker's updates are left on), the ad-filled
+     app store and the office suite. They're removed for your user only, so Undo
      brings them back.
   2. Makes Lumen the home screen, turns the stock launcher (and its ads)
      off, and sets Lumen Window as the screensaver.
   3. Gives Lumen its permissions: updates, drawing over apps, screen presets,
      colour warmth and voice.
-  4. Smoothness: the UI is drawn at the panel's real 1280x720 instead of
-     1080p (2.25x less GPU work and less heat), animations run at 0.5x, and
-     Lumen and Settings are compiled to native code.
-  5. Ad blocking for every app through AdGuard DNS (dns.adguard-dns.com).
-     If your network blocks it, the script switches it back off by itself.
+  4. Smoothness: animations run at 0.5x and Lumen and Settings are compiled
+     to native code (Android 7+). On the HY300 family the UI is also drawn
+     at the panel's real 1280x720 instead of 1080p (2.25x less GPU work and
+     less heat). Other projectors keep their resolution unless you choose
+     720 or 1080 at the prompt.
+  5. Ad blocking for every app through AdGuard DNS (dns.adguard-dns.com),
+     on Android 9 or later. If your network blocks it, the script switches
+     it back off by itself.
+
+WHICH PROJECTORS
+  Any Android 6+ projector: home screen, apps, voice, phone remote, cast,
+  Continue Watching, Lumen Window, OTA updates, heat guard (it reads each
+  chip's own temperature limits), debloat, ad blocking, Speed, Thermals.
+  Allwinner projectors: Lumen's direct picture engine as well.
+  Other chips: Lumen sets brightness and warmth, and shows the values to set
+  in the projector's own picture menu.
+  HY300 / HY320 family (Allwinner H713) only: Keystone, Boot logo, 720p
+  rendering, updater removal. On any other projector those tools say so and
+  change nothing.
+  The installer prints which projector it found before changing anything.
 
 BEFORE YOU START (once)
   On the projector:
@@ -28,7 +46,7 @@ BEFORE YOU START (once)
 
   Then connect in ONE of these ways:
   A) Wi-Fi (try this first, even without a Network debugging switch:
-     many HY300 firmwares already allow it). Your PC must be on the
+     many projector firmwares already allow it). Your PC must be on the
      same Wi-Fi. At the prompt, type the projector's IP (Settings >
      Network shows it).
   B) USB cable, if Wi-Fi won't connect. Use a USB-A to USB-A cable
@@ -78,7 +96,7 @@ UPDATE (already ran the installer once?)
   Auto Picture) and Continue Watching above Trending.
 
 EXTRA TOOLS
-  LumenOS-Keystone.bat - tune the automatic keystone correction (reversible).
+  LumenOS-Keystone.bat (HY300 family only) - tune the automatic keystone correction (reversible).
     The projector straightens the picture from its tilt sensor. On a shaky
     build it keeps nudging itself. This lets you pick how steady it is:
     Stable (fewest re-corrections, best on a fixed shelf), Balanced (the
@@ -96,7 +114,7 @@ EXTRA TOOLS
     min / average / max against the projector's throttle limits. Read-only.
     Start a video first so the reading reflects real use.
 
-BOOT LOGO
+BOOT LOGO (HY300 family only)
   LumenOS-Logo.bat - replaces the MAGCUBIC startup logo with Lumen.
   Nothing is flashed: the projector's loader shows a logo from its Reserve0
   area, and Android plays a boot animation from /oem/media; both can be
