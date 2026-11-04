@@ -36,6 +36,17 @@ public class DeviceTest {
     eq(HeatGuard.isCpuZone("cpu-thermal"), true, "allwinner/rockchip cpu"); eq(HeatGuard.isCpuZone("soc_thermal"), true, "amlogic soc");
     eq(HeatGuard.isCpuZone("mtktscpu"), true, "mediatek cpu"); eq(HeatGuard.isGpuZone("gpu-thermal"), true, "gpu");
     eq(HeatGuard.isGpuZone("mali"), true, "mali"); eq(HeatGuard.isCpuZone("battery"), false, "not battery");
+    // Continue Watching deep links
+    eq(ContinueStore.netflixId("80117552", ""), "80117552", "nf bare id");
+    eq(ContinueStore.netflixId("", "https://www.netflix.com/watch/81231974?trackId=1"), "81231974", "nf watch url");
+    eq(ContinueStore.netflixId("", "https://www.netflix.com/in/title/80057281"), "80057281", "nf title url");
+    eq(ContinueStore.netflixId("video:70143836", ""), "70143836", "nf prefixed id");
+    eq(ContinueStore.netflixId("Stranger Things", ""), "", "nf no id");
+    eq(ContinueStore.primeId("amzn1.dv.gti.0eb5e8a6-1b2f-4c51-9d2a-0d6c1f0b6d11", ""), "amzn1.dv.gti.0eb5e8a6-1b2f-4c51-9d2a-0d6c1f0b6d11", "pv gti");
+    eq(ContinueStore.primeId("", "https://app.primevideo.com/detail?asin=B0B8TR6GHH"), "B0B8TR6GHH", "pv asin");
+    eq(ContinueStore.primeId("12345", ""), "", "pv none");
+    eq(ContinueStore.isLink("hotstar://content/1260012345"), true, "link");
+    eq(ContinueStore.isLink("1260012345"), false, "not link");
     System.out.println(pass + "/" + (pass + fail) + " passed");
   }
 }

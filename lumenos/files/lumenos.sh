@@ -108,6 +108,7 @@ pm grant $L android.permission.WRITE_SECURE_SETTINGS 2>/dev/null
 pm grant $L android.permission.RECORD_AUDIO 2>/dev/null
 pm grant $L android.permission.DUMP 2>/dev/null   # heat guard: exact CPU/GPU temperatures
 pm grant $L com.android.providers.tv.permission.READ_EPG_DATA 2>/dev/null
+dpm set-active-admin --user 0 $L/.PowerAdmin >/dev/null 2>&1   # "turn off the projector" (screen-off right only)
 cmd notification allow_listener $L/$L.MediaWatch >/dev/null 2>&1 || \
   settings put secure enabled_notification_listeners "$L/$L.MediaWatch"
 say "Permissions: updates, draw over apps, screen presets, colour warmth, voice, Continue Watching."

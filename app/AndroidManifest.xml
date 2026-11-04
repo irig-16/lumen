@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.lumen.launcher"
-    android:versionCode="21"
-    android:versionName="8.0">
+    android:versionCode="22"
+    android:versionName="8.1">
 
     <!-- Target 30: the projector's security policy only lets Android 11-level apps reach the picture processor -->
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="30" />
@@ -12,6 +12,10 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Voice and phone: wake the projector from standby; switch Bluetooth on and off -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Screen presets: brightness (user-granted) and colour warmth (granted once over ADB) -->
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
@@ -127,6 +131,18 @@
         </service>
 
         <receiver android:name=".UpdateReceiver" android:exported="false" />
+
+        <!-- "Turn off the projector": the screen-off right only (allowed once by the user) -->
+        <receiver
+            android:name=".PowerAdmin"
+            android:exported="true"
+            android:label="Lumen power button"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data android:name="android.app.device_admin" android:resource="@xml/power_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Heat guard: remembers the temperature at shutdown, to explain a heat shutdown on the next start -->
         <receiver android:name=".HeatReceiver" android:exported="true">

@@ -100,6 +100,39 @@ final class ContinueStore {
     private static final java.util.regex.Pattern SEASON_ONLY =
             java.util.regex.Pattern.compile("(?i)\\b(?:Season|S)\\s*0*(\\d{1,3})\\b");
 
+    // ------------------------------------------------------------------ deep links (pure, testable)
+
+    private static final java.util.regex.Pattern NF_URL =
+            java.util.regex.Pattern.compile("netflix\\.com/(?:[a-z-]+/)?(?:watch|title)/(\\d{5,12})");
+    private static final java.util.regex.Pattern NF_ID = java.util.regex.Pattern.compile("^(?:[a-z]+[:_])?(\\d{5,12})$");
+    private static final java.util.regex.Pattern PV_GTI =
+            java.util.regex.Pattern.compile("(amzn1\\.dv\\.gti\\.[0-9a-fA-F-]{36})");
+    private static final java.util.regex.Pattern PV_ASIN = java.util.regex.Pattern.compile("\\b(B0[0-9A-Z]{8})\\b");
+
+    /** The Netflix video id (an episode or a film) from what the player published, or "". */
+    static String netflixId(String mediaId, String uri) {
+        java.util.regex.Matcher m = NF_URL.matcher(uri == null ? "" : uri);
+        if (m.find()) return m.group(1);
+        m = NF_URL.matcher(mediaId == null ? "" : mediaId);
+        if (m.find()) return m.group(1);
+        m = NF_ID.matcher(mediaId == null ? "" : mediaId.trim().toLowerCase(Locale.ROOT));
+        return m.matches() ? m.group(1) : "";
+    }
+
+    /** The Prime Video title id (GTI, or an ASIN) from what the player published, or "". */
+    static String primeId(String mediaId, String uri) {
+        String all = (mediaId == null ? "" : mediaId) + " " + (uri == null ? "" : uri);
+        java.util.regex.Matcher m = PV_GTI.matcher(all);
+        if (m.find()) return m.group(1);
+        m = PV_ASIN.matcher(all);
+        return m.find() ? m.group(1) : "";
+    }
+
+    /** True when an app's media id is itself a link Android can open ("hotstar://…", "https://…"). */
+    static boolean isLink(String s) {
+        return s != null && s.matches("[A-Za-z][A-Za-z0-9+.-]*://\\S+");
+    }
+
     /**
      * Turns what an app publishes ("Ozymandias" + "Breaking Bad · S5:E14", "Breaking Bad: Season 5: Ozymandias"…)
      * into {show, "S5 E14"}: the series name and the season/episode, never the episode's own name.

@@ -135,6 +135,9 @@ UNDO
   Double-click LumenOS-Undo.bat. Removed apps, the stock launcher, the
   screen resolution and all settings go back to how they were.
   Lumen stays installed as a normal app.
+  To uninstall Lumen completely, first switch off "Lumen power button" in
+  Settings > Security > Device admin apps (it lets you turn the projector
+  off by voice; Android won't remove an app while that is on).
 
 IF SOMETHING LOOKS WRONG
   - Internet stopped working: Settings > Network > Private DNS > Automatic,

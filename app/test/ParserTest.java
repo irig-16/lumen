@@ -10,6 +10,21 @@ public class ParserTest {
     for (String[] s : list) apps.add(new CommandParser.AppRef(s[0], s[1]));
     CommandParser p = new CommandParser(apps);
     String[][] cases = {
+      {"turn off the projector","POWER_OFF"},{"switch off","POWER_OFF"},{"turn the projector off","POWER_OFF"},{"go to sleep","POWER_OFF"},
+      {"standby","POWER_OFF"},{"power off","POWER_OFF"},{"projector band karo","POWER_OFF"},
+      {"turn on the projector","POWER_ON"},{"wake up","POWER_ON"},{"turn on","POWER_ON"},{"switch the screen on","POWER_ON"},
+      {"brightness up","BRIGHTNESS up"},{"make it brighter","BRIGHTNESS up"},{"it's too dark","BRIGHTNESS up"},{"increase the brightness","BRIGHTNESS up"},
+      {"brightness down","BRIGHTNESS down"},{"dim the screen","BRIGHTNESS down"},{"too bright","BRIGHTNESS down"},{"make it darker","BRIGHTNESS down"},
+      {"set brightness to seventy","BRIGHTNESS set 70"},{"brightness 40 percent","BRIGHTNESS set 40"},
+      {"adjust the brightness","PICTURE_LAB 2"},{"brighter picture","SCREEN_PRESET bright"},
+      {"turn off continue watching","SWITCH cw 0"},{"continue watching on","SWITCH cw 1"},{"turn on ad blocking","SWITCH adblock 1"},
+      {"disable the ad blocker","SWITCH adblock 0"},{"block ads","SWITCH adblock 1"},{"allow ads","SWITCH adblock 0"},
+      {"turn off the heat guard","SWITCH heat 0"},{"heat guard on","SWITCH heat 1"},{"turn bluetooth on","SWITCH bluetooth 1"},
+      {"switch off bluetooth","SWITCH bluetooth 0"},{"turn off trending","SWITCH trending 0"},{"hide netflix trending","SWITCH nf 0"},
+      {"turn on youtube trending","SWITCH yt 1"},{"prime row off","SWITCH pv 0"},{"turn off automatic updates","SWITCH autoupdate 0"},
+      {"enable auto update","SWITCH autoupdate 1"},{"screensaver off","SWITCH window 0"},{"turn off wifi","SWITCH wifi 0"},
+      {"turn on sound effects","SOUND_PRESET lumen"},{"turn off the equaliser","SOUND_PRESET off"},
+      {"turn off auto picture","AUTO_PICTURE 0"},{"turn the sound back on","UNMUTE"},{"turn off animations","MOTION_CALM"},
       {"open kodi","OPEN Kodi"},{"Hey Lumen, can you open Kodi please","OPEN Kodi"},{"launch cody","OPEN Kodi"},
       {"open youtube","OPEN SmartTube"},{"YouTube kholo","OPEN SmartTube"},{"netflix","OPEN Netflix"},{"open nett flix","OPEN Netflix"},
       {"start the play store","OPEN Google Play Store"},{"go to file manager","OPEN File Manager"},{"open mixplorer","OPEN MiXplorer"},

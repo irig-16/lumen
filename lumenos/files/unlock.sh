@@ -15,6 +15,7 @@ pm grant $L android.permission.WRITE_SECURE_SETTINGS 2>/dev/null && echo "  secu
 pm grant $L android.permission.DUMP 2>/dev/null && echo "  thermal reader: on (exact CPU/GPU temperatures)"
 pm grant $L android.permission.RECORD_AUDIO 2>/dev/null
 pm grant $L com.android.providers.tv.permission.READ_EPG_DATA 2>/dev/null
+dpm set-active-admin --user 0 $L/.PowerAdmin >/dev/null 2>&1 && echo "  power: on (turn the projector off by voice or from the phone)"
 cmd notification allow_listener $L/$L.MediaWatch >/dev/null 2>&1 || \
   settings put secure enabled_notification_listeners "$L/$L.MediaWatch"
 cmd package set-home-activity $L/.HomeActivity >/dev/null 2>&1

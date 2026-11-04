@@ -2028,8 +2028,17 @@ public class HomeActivity extends Activity {
                 store.setBool(S_AMBIENT, true);
                 render(null, false);
                 return ok("Ambient light on");
+            case POWER_OFF:
+                return powerOff();
+            case POWER_ON:
+                if (PowerAdmin.wake(this)) return ok("Turning the projector on");
+                return ok("The projector is already on");
+            case BRIGHTNESS:
+                return brightness(c.query, c.value);
+            case SWITCH:
+                return switchSetting(c.query, c.value != 0);
             case HELP:
-                return ok("Try “open Kodi”, “play lofi music”, “volume 30”, “cinema sound”, “search Stranger Things on Netflix”, “where can I watch Dune”, “continue watching”, “HDR picture”, “sharper”, “show me the beach” or “go home”");
+                return ok("Try “open Kodi”, “play lofi music”, “volume 30”, “cinema sound”, “search Stranger Things on Netflix”, “where can I watch Dune”, “continue watching”, “HDR picture”, “sharper”, “show me the beach”, “brightness up”, “turn off ad blocking” or “turn off the projector”");
             case UNKNOWN_APP:
                 return fail("I couldn't find an app called “" + c.query + "”");
             default:
@@ -2037,6 +2046,150 @@ public class HomeActivity extends Activity {
         }
         if (c.heard.length() == 0) return fail("I didn't hear anything");
         return fail("Sorry, I didn't get “" + c.heard + "”. Say “help” for ideas.");
+    }
+
+    // ------------------------------------------------------------------ power, brightness, switches
+
+    /** Standby: the screen and the projector's light off. Asks once on the projector for the right to do it. */
+    private String[] powerOff() {
+        if (PowerAdmin.ready(this)) {
+            main.postDelayed(new Runnable() { // let the phone get its answer first
+                @Override
+                public void run() {
+                    PowerAdmin.sleep(HomeActivity.this);
+                }
+            }, 700);
+            return ok("Turning the projector off. Say “turn on” or tap power on the phone to wake it");
+        }
+        try {
+            startActivity(PowerAdmin.askIntent(this));
+            return ok("One-time step: on the projector, allow Lumen to turn the screen off, then say it again");
+        } catch (RuntimeException e) {
+            return fail("This projector doesn't let apps turn it off. Use its remote's power button");
+        }
+    }
+
+    /** Projector brightness in steps of 10%, or to a level. Also the light level on Allwinner projectors. */
+    private String[] brightness(String how, int value) {
+        if (!ScreenEngine.canBrightness(this)) {
+            return fail("Lumen needs permission to change brightness: open Lumen settings → Setting up LumenOS");
+        }
+        android.content.ContentResolver cr = getContentResolver();
+        int pct;
+        try {
+            pct = Math.round(Settings.System.getInt(cr, Settings.System.SCREEN_BRIGHTNESS, 200) * 100f / 255f);
+        } catch (RuntimeException e) {
+            pct = 80;
+        }
+        int next = "set".equals(how) ? value : "down".equals(how) ? pct - 10 : pct + 10;
+        next = Math.max(10, Math.min(100, Math.round(next / 5f) * 5));
+        try {
+            Settings.System.putInt(cr, Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+            Settings.System.putInt(cr, Settings.System.SCREEN_BRIGHTNESS, Math.round(next * 255f / 100f));
+        } catch (RuntimeException e) {
+            return fail("The projector didn't accept the brightness change");
+        }
+        if (ScreenEngine.engine()) {   // the light level the projector's own menu sets
+            final int level = next;
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    if (PictureEngine.get(PictureEngine.BACKLIGHT) >= 0) PictureEngine.set(PictureEngine.BACKLIGHT, level);
+                }
+            }, "lumen-light").start();
+        }
+        if (next == pct && !"set".equals(how)) return ok("Brightness is already at " + (next >= 100 ? "the maximum" : "the minimum"));
+        return ok("Brightness " + next + "%");
+    }
+
+    private int brightnessPercent() {
+        try {
+            return Math.round(Settings.System.getInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, 200) * 100f / 255f);
+        } catch (RuntimeException e) {
+            return -1;
+        }
+    }
+
+    private static String onOff(boolean on, String name) {
+        return name + (on ? " on" : " off");
+    }
+
+    /** Every on/off setting that voice and the phone page can switch (keys from CommandParser.SWITCHES). */
+    private String[] switchSetting(String key, boolean on) {
+        if ("cw".equals(key)) {
+            ContinueStore.setEnabled(this, on);
+            refreshContinue();
+            return ok(onOff(on, "Continue Watching"));
+        }
+        if ("trending".equals(key) || "yt".equals(key) || "nf".equals(key) || "pv".equals(key)) {
+            if ("trending".equals(key)) store.setBool("trending_all", on);
+            else {
+                store.setBool(key + "_on", on);
+                if (on && !trendingOn()) store.setBool("trending_all", true);
+            }
+            for (Shelf sh : shelves) sh.error = "";
+            refreshTrending(true);
+            fillShelves();
+            String name = "yt".equals(key) ? "YouTube trending" : "nf".equals(key) ? "Netflix trending"
+                    : "pv".equals(key) ? "Prime Video trending" : "Trending";
+            return ok(onOff(on, name));
+        }
+        if ("autoupdate".equals(key)) {
+            updater.setAuto(on);
+            return ok(onOff(on, "Automatic updates"));
+        }
+        if ("adblock".equals(key)) {
+            if (android.os.Build.VERSION.SDK_INT < 28) return fail("Ad blocking for every app needs Android 9 or later");
+            if (!SelfSetup.hasSecureSettings(this)) {
+                return fail("Ad blocking needs the one-time unlock: run LumenOS-Unlock.bat from a PC");
+            }
+            if (on) {
+                SelfSetup.applyAdBlock(this, true);
+                return ok("Ad blocking on for every app. If this Wi-Fi doesn't allow it, Lumen switches it back off");
+            }
+            SelfSetup.clearAdBlock(this);
+            return ok("Ad blocking off");
+        }
+        if ("heat".equals(key)) {
+            HeatGuard.get(this).setEnabled(on);
+            return ok(on ? "Heat guard on" : "Heat guard off: the projector's own safety switch-off still works");
+        }
+        if ("window".equals(key)) {
+            android.content.SharedPreferences sp = WindowView.prefs(this);
+            int idle = sp.getInt("idle", 0);
+            if (on) sp.edit().putInt("idle", idle > 0 ? idle : Math.max(5, sp.getInt("idle_last", 10))).apply();
+            else sp.edit().putInt("idle_last", idle > 0 ? idle : sp.getInt("idle_last", 10)).putInt("idle", 0).apply();
+            return ok(on ? "Lumen Window starts after " + WindowView.prefs(this).getInt("idle", 10) + " idle minutes" : "Lumen Window won't start by itself");
+        }
+        if ("bluetooth".equals(key)) {
+            android.bluetooth.BluetoothAdapter a = android.bluetooth.BluetoothAdapter.getDefaultAdapter();
+            if (a == null) return fail("This projector has no Bluetooth");
+            if (a.isEnabled() == on) return ok("Bluetooth is already " + (on ? "on" : "off"));
+            boolean done;
+            try {
+                done = on ? a.enable() : a.disable();
+            } catch (RuntimeException e) {
+                done = false;
+            }
+            if (done) return ok(onOff(on, "Bluetooth"));
+            openSettings(Settings.ACTION_BLUETOOTH_SETTINGS);
+            return ok("Switch Bluetooth " + (on ? "on" : "off") + " here");
+        }
+        if ("wifi".equals(key)) {
+            if (!on) return fail("Lumen won't switch Wi-Fi off: it would cut off this phone remote and streaming. Use the projector's settings");
+            openSettings(Settings.ACTION_WIFI_SETTINGS);
+            return ok("Opening Wi-Fi");
+        }
+        return fail("I can't switch that");
+    }
+
+    private boolean bluetoothOn() {
+        try {
+            android.bluetooth.BluetoothAdapter a = android.bluetooth.BluetoothAdapter.getDefaultAdapter();
+            return a != null && a.isEnabled();
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     private static String[] ok(String reply) {
@@ -2970,7 +3123,29 @@ public class HomeActivity extends Activity {
                 if (opened) return true;
             }
         }
-        boolean youTube = e.pkg.startsWith("com.google.android.youtube") || e.pkg.startsWith("com.teamsmart.videomanager")
+        // the player's own link to this title, kept from when it was playing (the session may be gone)
+        android.app.PendingIntent link = MediaWatch.sessionLinkFor(e.pkg, e.title);
+        if (link != null) {
+            try {
+                link.send();
+                final String pkg = e.pkg;
+                main.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        android.media.session.MediaController c = MediaWatch.controllerFor(pkg);
+                        if (c == null) return;
+                        try {
+                            c.getTransportControls().play();
+                        } catch (RuntimeException ignored) {
+                        }
+                    }
+                }, 2500);
+                return true;
+            } catch (Exception ignored) {
+                // the app cancelled it: try the links below
+            }
+        }
+        boolean youTube =e.pkg.startsWith("com.google.android.youtube") || e.pkg.startsWith("com.teamsmart.videomanager")
                 || e.pkg.startsWith("com.liskovsoft");
         if (youTube) {
             String id = e.mediaId.matches("[A-Za-z0-9_-]{11}") ? e.mediaId : "";
@@ -2984,22 +3159,72 @@ public class HomeActivity extends Activity {
             }
         }
         if (e.pkg.startsWith("com.netflix")) {
-            openContent(new ContentItem(ContentItem.NF, "", e.title, "", ""), from);
-            return true;
+            // Netflix opens the episode itself and carries on from its own saved point
+            String id = ContinueStore.netflixId(e.mediaId, e.uri);
+            if (id.length() > 0 && openNetflixVideo(e.pkg, id)) return true;
+            if (launchPkg(e.pkg, from)) {
+                toast(e.title + " is first in Netflix's Continue Watching row");
+                return true;
+            }
         }
         if (e.pkg.startsWith("com.amazon.amazonvideo") || e.pkg.startsWith("com.amazon.avod")) {
+            String id = ContinueStore.primeId(e.mediaId, e.uri);
+            if (id.length() > 0) {
+                String q = id.startsWith("amzn1.") ? "gti=" + id : "asin=" + id;
+                if (viewIn(e.pkg, "https://app.primevideo.com/detail?" + q)
+                        || viewIn(e.pkg, "https://www.primevideo.com/detail?" + q)) {
+                    toast("Press Resume on " + e.title);
+                    return true;
+                }
+            }
             openContent(new ContentItem(ContentItem.PV, "", e.title, "", ""), from);
             return true;
         }
-        if (e.uri.length() > 0) {
+        if (ContinueStore.isLink(e.mediaId) && viewIn(e.pkg, e.mediaId)) return true;
+        if (e.uri.length() > 0 && viewIn(e.pkg, e.uri)) return true;
+        if (launchPkg(e.pkg, from)) return true;
+        toast("Couldn't open that app");
+        return false;
+    }
+
+    /** Opens a link in one app (no chooser). False if that app can't take it. */
+    private boolean viewIn(String pkg, String url) {
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url)).setPackage(pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            if (i.resolveActivity(getPackageManager()) == null) return false;
+            startActivity(i);
+            return true;
+        } catch (RuntimeException ex) {
+            return false;
+        }
+    }
+
+    /**
+     * Netflix's own deep link to a video: /watch/<id> with source=30 is how Android TV home screens
+     * start a Netflix episode; Netflix resumes it from where you stopped.
+     */
+    private boolean openNetflixVideo(String pkg, String id) {
+        String[] urls = {"https://www.netflix.com/watch/" + id, "nflx://www.netflix.com/watch/" + id};
+        for (String u : urls) {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(u)).setPackage(pkg)
+                    .putExtra("source", "30").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try {
-                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(e.uri)).setPackage(e.pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                if (i.resolveActivity(getPackageManager()) != null) {
+                    startActivity(i);
+                    return true;
+                }
+            } catch (RuntimeException ignored) {
+            }
+        }
+        if ("com.netflix.ninja".equals(pkg)) { // the TV app's main activity takes the link even where it isn't declared
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(urls[0]))
+                        .setClassName(pkg, "com.netflix.ninja.MainActivity").putExtra("source", "30")
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 return true;
             } catch (RuntimeException ignored) {
             }
         }
-        if (launchPkg(e.pkg, from)) return true;
-        toast("Couldn't open that app");
         return false;
     }
 
@@ -3127,6 +3352,16 @@ public class HomeActivity extends Activity {
         b.append(",\"cwOn\":").append(ContinueStore.enabled(this));
         b.append(",\"cwAccess\":").append(ContinueStore.canWatch(this));
         b.append(",\"window\":").append(windowJson());
+        b.append(",\"power\":").append(PowerAdmin.screenOn(this));
+        b.append(",\"powerReady\":").append(PowerAdmin.ready(this));
+        b.append(",\"bright\":").append(brightnessPercent());
+        b.append(",\"canBright\":").append(ScreenEngine.canBrightness(this));
+        b.append(",\"adOn\":").append(SelfSetup.adBlockOn(this));
+        b.append(",\"adCan\":").append(android.os.Build.VERSION.SDK_INT >= 28 && SelfSetup.hasSecureSettings(this));
+        b.append(",\"heatOn\":").append(HeatGuard.get(this).enabled());
+        b.append(",\"heat\":").append(RemoteServer.json(HeatGuard.get(this).reading()));
+        b.append(",\"btOn\":").append(bluetoothOn());
+        b.append(",\"autoUpdate\":").append(updater.auto());
         return b.append('}').toString();
     }
 
@@ -4023,6 +4258,27 @@ public class HomeActivity extends Activity {
                     @Override
                     public String call() {
                         Map<String, String> f = RemoteServer.form(form);
+                        // the phone page's Projector card: one switch, brightness, or power at a time
+                        String sw = f.get("switch");
+                        if (sw != null && f.containsKey("on")) {
+                            String[] r = switchSetting(sw, "true".equals(f.get("on")));
+                            return settingsState().replaceFirst("\\}$", ",\"reply\":" + RemoteServer.json(r[1]) + ",\"ok\":" + r[0] + "}");
+                        }
+                        if (f.containsKey("bright")) {
+                            String[] r;
+                            try {
+                                r = brightness("set", Integer.parseInt(f.get("bright")));
+                            } catch (NumberFormatException e) {
+                                r = fail("Not a number");
+                            }
+                            return settingsState().replaceFirst("\\}$", ",\"reply\":" + RemoteServer.json(r[1]) + ",\"ok\":" + r[0] + "}");
+                        }
+                        if (f.containsKey("power")) {
+                            String[] r = "on".equals(f.get("power"))
+                                    ? (PowerAdmin.wake(HomeActivity.this) ? ok("Turning the projector on") : ok("The projector is already on"))
+                                    : powerOff();
+                            return settingsState().replaceFirst("\\}$", ",\"reply\":" + RemoteServer.json(r[1]) + ",\"ok\":" + r[0] + "}");
+                        }
                         if (f.containsKey("ytkey")) store.setString("yt_key", f.get("ytkey").trim());
                         if (f.containsKey("region")) {
                             String r = f.get("region").trim().toUpperCase(Locale.ROOT);

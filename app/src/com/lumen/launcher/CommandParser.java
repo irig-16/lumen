@@ -30,6 +30,7 @@ final class CommandParser {
         SCREEN, SCREEN_PRESET, SOUND_OUTPUT, UPDATE, CAST, MIRROR,
         SEARCH_IN_APP, WHERE_TO_WATCH, WATCH, SEEK, WINDOW,
         DETAIL, AUTO_PICTURE, COMPARE_PICTURE, CONTINUE_WATCHING,
+        POWER_OFF, POWER_ON, BRIGHTNESS, SWITCH,
         HELP, UNKNOWN_APP, UNKNOWN
     }
 
@@ -158,6 +159,50 @@ final class CommandParser {
         this.apps = apps;
     }
 
+    /**
+     * Settings that can be switched on and off by voice: {key, spoken names}. The key is what
+     * HomeActivity's switchSetting() and the phone page use.
+     */
+    static final String[][] SWITCHES = {
+            {"cw", "continue watching(?: row)?"},
+            {"yt", "youtube (?:trending|row|trending row)|trending on youtube"},
+            {"nf", "netflix (?:trending|row|top 10|top ten|trending row)|trending on netflix"},
+            {"pv", "(?:prime|prime video|amazon prime) (?:trending|row|trending row)|trending on (?:prime|prime video)"},
+            {"trending", "trending(?: rows?| videos| shelves)?"},
+            {"autoupdate", "(?:automatic|auto) updates?|auto update|updates"},
+            {"adblock", "ad ?block(?:ing|er)?|ads? blocker|ads? blocking|block(?:ing)? ads|adguard"},
+            {"heat", "heat guard|heat protection|overheat(?:ing)? (?:protection|warning|guard)|temperature (?:guard|warning)"},
+            {"window", "screen ?saver|(?:lumen )?window when idle|idle (?:window|scenes)"},
+            {"bluetooth", "bluetooth"},
+            {"wifi", "wi ?fi|wireless|internet"},
+            {"soundfx", "sound (?:effects?|studio|enhancements?)|equali[sz]er|audio effects?"},
+    };
+    private static Pattern switchPattern;
+
+    /** "turn off ad blocking", "continue watching on", "disable the heat guard" → {key, "1"|"0"}, or null. */
+    static String[] parseSwitch(String t) {
+        if (switchPattern == null) {
+            StringBuilder names = new StringBuilder();
+            for (String[] sw : SWITCHES) names.append(names.length() > 0 ? "|" : "").append("(?:").append(sw[1]).append(')');
+            String x = "(?:the |my )?(" + names + ")";
+            String onOff = "(on|off)";
+            switchPattern = Pattern.compile("^(?:(?:turn|switch|set|put) " + onOff + " " + x
+                    + "|(?:turn|switch|set|put) " + x + " " + onOff
+                    + "|(enable|disable|activate|deactivate|stop|hide|unhide) " + x
+                    + "|" + x + " " + onOff + ")$");
+        }
+        Matcher m = switchPattern.matcher(t);
+        if (!m.matches()) return null;
+        String name, state;
+        if (m.group(2) != null) { state = m.group(1); name = m.group(2); }
+        else if (m.group(3) != null) { name = m.group(3); state = m.group(4); }
+        else if (m.group(6) != null) { state = m.group(5); name = m.group(6); }
+        else { name = m.group(7); state = m.group(8); }
+        boolean on = state.equals("on") || state.matches("enable|activate|unhide");
+        for (String[] sw : SWITCHES) if (name.matches(sw[1])) return new String[]{sw[0], on ? "1" : "0"};
+        return null;
+    }
+
     // ================================================================== parse
 
     Command parse(String raw) {
@@ -178,6 +223,46 @@ final class CommandParser {
                 + "|how (?:hot|warm) is (?:it|the projector|my projector|the cpu)(?: now)?|is (?:it|the projector) (?:too )?(?:hot|overheating)"
                 + "|heat guard|projector garam hai"))
             return set(c, Type.TEMPERATURE);
+
+        // ---- power (the projector's light and picture; Android sleeps, it isn't shut down)
+        if (t.matches("(?:turn|switch|power|shut) (?:off|down)(?: the)?(?: projector| tv| screen| device| display| lumen| lamp)?"
+                + "|(?:turn|switch|power) (?:the )?(?:projector|tv|screen|device|display) (?:off|down)|(?:go to |put (?:it|the projector) to )?sleep"
+                + "|stand ?by|(?:projector|tv|screen) off|good ?night(?: lumen)?|projector band (?:karo|kar do)|band karo"))
+            return set(c, Type.POWER_OFF);
+        if (t.matches("(?:turn|switch|power) on(?: the)?(?: projector| tv| screen| device| display| lumen)?"
+                + "|(?:turn|switch|power) (?:the )?(?:projector|tv|screen|device|display) on|wake(?: up)?(?: the)?(?: projector| screen| tv| lumen)?"
+                + "|(?:projector|tv|screen) on|projector chalu karo"))
+            return set(c, Type.POWER_ON);
+
+        // ---- brightness (before Picture Lab's "set the brightness" and the Bright room preset)
+        Matcher bm = Pattern.compile("^(?:set |turn |put |make )?(?:the )?(?:screen |projector |picture )?brightness(?: level)?(?: to| at)? (\\d{1,3})(?: percent| %)?$").matcher(t);
+        if (bm.matches()) {
+            c.query = "set";
+            c.value = Math.max(0, Math.min(100, Integer.parseInt(bm.group(1))));
+            return set(c, Type.BRIGHTNESS);
+        }
+        if (t.matches("(?:increase|raise|boost|turn up|more)(?: the)?(?: screen| projector)? brightness|brightness (?:up|higher|more|badhao)"
+                + "|(?:make (?:it|the (?:screen|picture|projector|image)) )?brighter|(?:it s |its |it is )?(?:too|very|a bit|bit) dark|roshni badhao")) {
+            c.query = "up";
+            return set(c, Type.BRIGHTNESS);
+        }
+        if (t.matches("(?:decrease|lower|reduce|turn down|less)(?: the)?(?: screen| projector)? brightness|brightness (?:down|lower|less|kam karo)"
+                + "|(?:make (?:it|the (?:screen|picture|projector|image)) )?(?:dimmer|darker)|dim(?: the)?(?: screen| picture| projector| display)?"
+                + "|(?:it s |its |it is )?(?:too|very|a bit|bit) bright|roshni kam karo")) {
+            c.query = "down";
+            return set(c, Type.BRIGHTNESS);
+        }
+
+        // ---- switches: "turn off ad blocking", "continue watching on", "disable the heat guard"
+        String[] sw = parseSwitch(t);
+        if (sw == null && t.matches("(?:block|stop) (?:the )?ads|no (?:more )?ads")) sw = new String[]{"adblock", "1"};
+        if (sw == null && t.matches("(?:allow|show|unblock) (?:the )?ads")) sw = new String[]{"adblock", "0"};
+        if (sw != null) {
+            if (sw[0].equals("soundfx")) return preset(c, sw[1].equals("1") ? "lumen" : "off");
+            c.query = sw[0];
+            c.value = Integer.parseInt(sw[1]);
+            return set(c, Type.SWITCH);
+        }
 
         // ---- where to watch, popular on a service
         Matcher w;

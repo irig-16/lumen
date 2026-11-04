@@ -38,6 +38,7 @@ Developed with ♥ by Radirig. Open source under the MIT licence.
 - **Lumen Imaging**: picture profiles that drive the projector's own picture processor (Natural, Cinema, HDR-style, Vivid, Game, Bright room), a 5-level **Detail engine**, and **Auto Picture** per app
 - **Heat guard**: watches CPU and GPU temperature and steps in before the projector's own switch-off (read from each chip's own thermal limits; 115 °C on the HY300)
 - **Sound Studio**, voice control (English, plus some Hinglish), a phone remote (scan a QR code), casting, **Lumen Window** living scenes
+- **Voice from the phone, on every tab**: power on and off, brightness up and down, and on/off for every setting (“turn off ad blocking”, “brightness 60”, “turn off the projector”)
 - **Over-the-air updates** from this repository, with a prompt on the home screen
 
 **LumenOS (the toolkit, `lumenos/`)**
@@ -105,4 +106,5 @@ No API keys are in this repo or in any APK. Trending and Lumen Window work throu
 ## Safety
 - Nothing is flashed, and the bootloader and system partitions aren't touched. The boot-logo tool only adds files to the projector's writable logo area and checks the panel settings file before and after every change.
 - The projector's security patch level can't be raised in software: only the vendor can ship a newer signed firmware.
+- Turning the projector off uses Android's device-admin “lock screen” right, the only right Lumen asks for there. Android won't uninstall an app that holds it: to remove Lumen, first switch off *Lumen power button* in Settings → Security → Device admin apps.
 - Provided as is, without warranty (see [LICENSE](LICENSE)). Not affiliated with any projector brand.

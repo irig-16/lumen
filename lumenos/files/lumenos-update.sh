@@ -24,6 +24,7 @@ pm grant $L android.permission.RECORD_AUDIO 2>/dev/null
 pm grant $L android.permission.DUMP 2>/dev/null && say "Heat guard: exact temperatures on"
 # Continue Watching: Android TV's Watch Next list (where the firmware shares it) ...
 pm grant $L com.android.providers.tv.permission.READ_EPG_DATA 2>/dev/null && say "Watch Next access: granted"
+dpm set-active-admin --user 0 $L/.PowerAdmin >/dev/null 2>&1 && say "Power: turn the projector off by voice or from the phone"
 # ... and the "now playing" info apps publish (media sessions; notifications are never read)
 if cmd notification allow_listener $L/$L.MediaWatch >/dev/null 2>&1; then
   say "Continue Watching: on"

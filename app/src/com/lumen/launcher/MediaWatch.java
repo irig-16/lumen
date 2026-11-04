@@ -96,6 +96,32 @@ public class MediaWatch extends NotificationListenerService {
         return running != null;
     }
 
+    /**
+     * The player's own "open me" link (MediaSession.getSessionActivity) for the last title each app
+     * played: {title, PendingIntent}. It stays valid after the app closes its session, so a Continue
+     * Watching card can reopen the player on that title instead of the app's home page.
+     */
+    private static final Map<String, Object[]> SESSION_LINKS = new HashMap<String, Object[]>();
+
+    static android.app.PendingIntent sessionLinkFor(String pkg, String title) {
+        synchronized (SESSION_LINKS) {
+            Object[] o = SESSION_LINKS.get(pkg);
+            if (o == null || title == null || !title.equalsIgnoreCase((String) o[0])) return null;
+            return (android.app.PendingIntent) o[1];
+        }
+    }
+
+    private static void rememberLink(String pkg, String title, MediaController c) {
+        try {
+            android.app.PendingIntent pi = c.getSessionActivity();
+            if (pi == null) return;
+            synchronized (SESSION_LINKS) {
+                SESSION_LINKS.put(pkg, new Object[]{title, pi});
+            }
+        } catch (RuntimeException ignored) {
+        }
+    }
+
     private void attach(List<MediaController> list) {
         if (list == null) list = new ArrayList<MediaController>();
         synchronized (watchers) {
@@ -204,6 +230,20 @@ public class MediaWatch extends NotificationListenerService {
             }
             e.mediaId = first(m, MediaMetadata.METADATA_KEY_MEDIA_ID);
             e.uri = first(m, "android.media.metadata.MEDIA_URI");
+            // players put their ids in different fields: take a link or an id from any of them
+            if (e.mediaId.length() == 0 || e.uri.length() == 0) {
+                try {
+                    for (String k : m.keySet()) {
+                        String lk = k.toLowerCase(java.util.Locale.ROOT);
+                        if (lk.contains("art") || lk.contains("icon") || lk.contains("image")) continue;
+                        String v = first(m, k);
+                        if (v.length() == 0 || v.length() > 300) continue;
+                        if (e.uri.length() == 0 && v.matches("[A-Za-z][A-Za-z0-9+.-]*://\\S+")) e.uri = v;
+                        else if (e.mediaId.length() == 0 && lk.matches(".*(?:_id|\\.id|id)$") && !v.contains(" ")) e.mediaId = v;
+                    }
+                } catch (RuntimeException ignored) {
+                }
+            }
             e.duration = Math.max(0, m.getLong(MediaMetadata.METADATA_KEY_DURATION));
             if (s != null) {
                 long pos = s.getPosition();
@@ -213,6 +253,7 @@ public class MediaWatch extends NotificationListenerService {
                 e.position = Math.max(0, pos);
             }
             if (e.title.length() == 0) return;
+            rememberLink(e.pkg, e.title, c);
             e.updatedAt = System.currentTimeMillis();
             Bitmap art = null;
             if (!e.title.equals(lastTitle)) { // artwork only when the title changes
