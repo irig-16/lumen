@@ -160,5 +160,10 @@ case "$MODE" in
     echo ""
     status
     ;;
+  mode)   # for the .bat: which menu fits this projector
+    if [ $H713 = 1 ]; then echo h713
+    elif [ -d "$M" ] && [ -w "$M" ]; then echo anim
+    else echo locked; fi
+    ;;
   *) echo "Unknown option: $MODE"; exit 1 ;;
 esac

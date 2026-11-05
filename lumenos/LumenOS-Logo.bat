@@ -25,12 +25,24 @@ if /i not "%IP%"=="usb" "%ADB%" connect "%DEV%" >nul 2>&1
 "%ADB%" %SEL% push "%~dp0files\logo\bootlogo.jpg" /data/local/tmp/lumenlogo/bootlogo.jpg >nul || goto :fail
 "%ADB%" %SEL% push "%~dp0files\logo\black.zip" /data/local/tmp/lumenlogo/black.zip >nul || goto :fail
 "%ADB%" %SEL% push "%~dp0files\logo\ember.zip" /data/local/tmp/lumenlogo/ember.zip >nul || goto :fail
+set "KIND=h713"
+for /f "delims=" %%K in ('call "%ADB%" %SEL% shell sh /data/local/tmp/logo.sh mode 2^>nul') do set "KIND=%%K"
+for /f "delims=" %%P in ('call "%ADB%" %SEL% shell getprop ro.board.platform 2^>nul') do set "PLAT=%%P"
+if "%KIND%"=="locked" goto :locked
 :menu
 echo.
 echo   ================ Boot logo =================
+if "%KIND%"=="anim" goto :animmenu
 echo    1  Lumen splash + quiet black animation
 echo    2  Lumen splash + Lumen ember animation
 echo    3  Lumen hold: the logo stays on until the intro, no black gap
+goto :rest
+:animmenu
+echo    This projector (%PLAT%) lets Lumen change its boot animation.
+echo    The very first logo comes from its locked firmware and stays.
+echo    1  Lumen boot animation: quiet black
+echo    2  Lumen boot animation: ember
+:rest
 echo    4  Restore the projector's own logo
 echo    5  Show what's installed
 echo    6  Restart the projector now
@@ -40,12 +52,22 @@ set "CH="
 set /p "CH=  Choose 1-7: "
 if "%CH%"=="1" ( "%ADB%" %SEL% shell sh /data/local/tmp/logo.sh install-black & goto :menu )
 if "%CH%"=="2" ( "%ADB%" %SEL% shell sh /data/local/tmp/logo.sh install-ember & goto :menu )
-if "%CH%"=="3" goto :hold
+if "%CH%"=="3" if not "%KIND%"=="anim" goto :hold
 if "%CH%"=="4" ( "%ADB%" %SEL% shell sh /data/local/tmp/logo.sh restore & goto :menu )
 if "%CH%"=="5" ( "%ADB%" %SEL% shell sh /data/local/tmp/logo.sh status & goto :menu )
 if "%CH%"=="6" ( "%ADB%" %SEL% reboot & echo   Restarting... & goto :menu )
 if "%CH%"=="7" goto :done
 goto :menu
+
+:locked
+echo.
+echo   This projector (%PLAT%) keeps its boot logo and boot animation in its locked
+echo   firmware. There's no place Android reads them from that LumenOS can write to,
+echo   and changing them would need a firmware flash, which LumenOS never does.
+echo   Nothing was changed. (The HY300 family is the exception: it has such a place.)
+echo.
+pause
+exit /b 0
 
 :hold
 echo.
