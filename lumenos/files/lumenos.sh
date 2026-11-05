@@ -113,26 +113,48 @@ cmd notification allow_listener $L/$L.MediaWatch >/dev/null 2>&1 || \
   settings put secure enabled_notification_listeners "$L/$L.MediaWatch"
 say "Permissions: updates, draw over apps, screen presets, colour warmth, voice, Continue Watching."
 
-if cmd package set-home-activity $L/.HomeActivity >/dev/null 2>&1 || pm set-home-activity $L/.HomeActivity >/dev/null 2>&1; then
-  say "Lumen set as home."
+# Prove Lumen really runs on this projector before it becomes the home screen. A home screen that
+# can't start leaves Android on its boot logo, so on any doubt the stock launcher stays in charge.
+logcat -c 2>/dev/null
+am start -W -n $L/.HomeActivity >/dev/null 2>&1
+sleep 8
+LUMEN_OK=1
+if logcat -d 2>/dev/null | grep -q "Process: $L"; then LUMEN_OK=0; fi
+if ! { pidof $L >/dev/null 2>&1 || ps -A 2>/dev/null | grep -q " $L\$" || ps 2>/dev/null | grep -q " $L\$"; }; then LUMEN_OK=0; fi
+if [ $LUMEN_OK = 0 ]; then
+  logcat -d 2>/dev/null | grep -A 25 "FATAL EXCEPTION" | grep -B 2 -A 22 "Process: $L" > $B/lumen-crash.txt
+  say "Lumen didn't start properly on this projector, so it was NOT made the home screen"
+  say "and the projector's own launcher stays on. Send lumen-crash.txt from the backup folder."
+  am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null 2>&1
 else
-  say "This Android version can't set the home screen from here: press Home once and choose Lumen, Always."
+  say "Lumen starts fine on this projector."
+  if cmd package set-home-activity $L/.HomeActivity >/dev/null 2>&1 || pm set-home-activity $L/.HomeActivity >/dev/null 2>&1; then
+    say "Lumen set as home."
+  else
+    say "This Android version can't set the home screen from here: press Home once and choose Lumen, Always."
+  fi
+  # Switching the stock launcher off (it carries the ads) only where that is tested: the HY300 family.
+  # Elsewhere it stays installed behind Lumen, so Android always has a home screen to fall back to.
+  if [ $H713 = 1 ]; then
+    cmd package query-activities --components -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null | \
+      sed 's|/.*||' | sort -u | grep -i launcher | grep -v "^$L\$" | \
+    while read -r p; do
+      if pm disable-user --user 0 $p >/dev/null 2>&1; then
+        grep -qx "$p" $B/disabled.txt || echo "$p" >> $B/disabled.txt
+        say "stock launcher off: $p"
+      fi
+    done
+  else
+    say "The projector's own launcher stays installed as a fallback (only the HY300 family switches it off)."
+  fi
 fi
 
-# Disable every other launcher (the stock one carries the ads).
-cmd package query-activities --components -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null | \
-  sed 's|/.*||' | sort -u | grep -i launcher | grep -v "^$L\$" | \
-while read -r p; do
-  if pm disable-user --user 0 $p >/dev/null 2>&1; then
-    grep -qx "$p" $B/disabled.txt || echo "$p" >> $B/disabled.txt
-    say "stock launcher off: $p"
-  fi
-done
-
 # Lumen Window as the screensaver.
-settings put secure screensaver_components $L/.WindowDream
-settings put secure screensaver_enabled 1
-say "Lumen Window is the screensaver."
+if [ $LUMEN_OK = 1 ]; then
+  settings put secure screensaver_components $L/.WindowDream
+  settings put secure screensaver_enabled 1
+  say "Lumen Window is the screensaver."
+fi
 
 # ---------------------------------------------------------------- smoothness
 step 4/6 "Tuning for smoothness"

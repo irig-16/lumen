@@ -139,6 +139,23 @@ UNDO
   Settings > Security > Device admin apps (it lets you turn the projector
   off by voice; Android won't remove an app while that is on).
 
+STUCK ON THE BOOT LOGO
+  Leave the projector on, showing its logo, and double-click
+  LumenOS-Rescue.bat on the PC you installed from (the projector already
+  trusts that PC). Type the IP, or USB if Wi-Fi isn't up yet. It turns the
+  projector's own launcher back on, switches Lumen off (not deleted), undoes
+  the LumenOS changes, restarts, and saves rescue-log.txt to send over.
+
+  IF NOTHING CONNECTS
+  LumenOS never changes the system itself, so a factory reset undoes all of
+  it (it also clears your apps, logins and settings). Unplug the projector.
+  Hold its physical power or OK button (some models have a reset pinhole
+  instead) while plugging the power back in, and keep holding for about 10
+  seconds until a text menu appears. Use the remote's arrows (or the
+  projector's buttons) to pick "Wipe data/factory reset", confirm, then
+  "Reboot system now". The exact button differs between models; the
+  projector's manual or seller can confirm it.
+
 IF SOMETHING LOOKS WRONG
   - Internet stopped working: Settings > Network > Private DNS > Automatic,
     or run Undo.
