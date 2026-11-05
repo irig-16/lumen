@@ -120,6 +120,20 @@
   .shade { position:fixed; inset:0; background:rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .25s; z-index:7; }
   .shade.show { opacity:1; pointer-events:auto; }
 
+  /* ---- live tv */
+  .tvchips { display:flex; gap:8px; overflow-x:auto; padding:2px 0 12px; scrollbar-width:none; }
+  .tvchips::-webkit-scrollbar { display:none; }
+  .tvchip { flex:none; padding:9px 14px; border-radius:999px; background:var(--surface); color:var(--text); font-size:14px; white-space:nowrap; }
+  .tvchip.on { background:var(--rose); color:#fff; }
+  .tvnow { display:none; align-items:center; gap:8px; background:linear-gradient(90deg,rgba(255,45,149,.18),rgba(0,123,167,.18)); border-radius:16px; padding:10px 10px 10px 14px; margin-bottom:12px; }
+  .tvnow.on { display:flex; }
+  .tvnow .grow { flex:1; min-width:0; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tvnow small { display:block; color:var(--sub); font-size:12px; }
+  .tvbtn { flex:none; width:42px; height:42px; border-radius:50%; background:var(--surface); color:var(--text); display:grid; place-items:center; font-size:15px; }
+  .tvlogo { width:52px; height:34px; border-radius:8px; background:var(--surface2); object-fit:contain; flex:none; }
+  .tvfav { flex:none; width:36px; height:36px; color:var(--sub); font-size:19px; }
+  .tvfav.on { color:var(--rose); }
+  .tvstate { color:#5fd35f; }
   /* ---- lists */
   .list { background:var(--surface); border-radius:16px; overflow:hidden; }
   .row { display:flex; align-items:center; gap:12px; min-height:54px; padding:10px 16px; width:100%; text-align:left; border-top:1px solid var(--line); }
@@ -272,6 +286,19 @@
     <div class="list" id="apps"><div class="row muted">Loading…</div></div>
   </section>
 
+  <!-- ============================== LIVE TV -->
+  <section class="view" id="v-tv">
+    <h2>Live TV</h2>
+    <div class="tvnow" id="tvNow"><div class="grow"><small>Playing</small><span id="tvNowName"></span></div>
+      <button class="tvbtn" id="tvPrev" aria-label="Previous channel">&#9660;</button>
+      <button class="tvbtn" id="tvNext" aria-label="Next channel">&#9650;</button>
+      <button class="tvbtn" id="tvStop" aria-label="Back to the list">&#9632;</button></div>
+    <input class="search" id="tvSearch" type="search" enterkeyhint="search" placeholder="Search channels" autocomplete="off">
+    <div class="tvchips" id="tvChips"></div>
+    <p class="muted" id="tvStatus" style="margin:0 4px 10px"></p>
+    <div class="list" id="tvList"><div class="row muted">Loading…</div></div>
+  </section>
+
   <!-- ============================== SOUND -->
   <section class="view" id="v-sound">
     <h2>Sound</h2>
@@ -404,6 +431,7 @@
 <nav><div class="tabs">
   <button data-tab="remote"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="3"/><circle cx="12" cy="8" r="1.6"/><path d="M10 13h4M10 16h4"/></svg>Remote</button>
   <button data-tab="apps"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></svg>Apps</button>
+  <button data-tab="tv"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M12 7 8 3M12 7l4-4M10.5 10.5 15 13l-4.5 2.5z"/></svg>TV</button>
   <button data-tab="sound"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4zM15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>Sound</button>
   <button data-tab="screen"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 20h8"/></svg>Screen</button>
   <button data-tab="more"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg>More</button>
@@ -465,6 +493,7 @@
     if (name === "screen" || name === "more") loadSettings();
     if (name === "more") loadUpdate();
     if (name === "apps") loadApps();
+    if (name === "tv") loadTv();
   }
   Array.prototype.forEach.call(document.querySelectorAll("nav button"), function (b) { b.onclick = function () { tab(b.getAttribute("data-tab")); }; });
   var start = "remote";
@@ -720,6 +749,63 @@
   }
   function loadApps() { api("GET", "/apps").then(function (list) { online(true); APPS = list || []; renderApps(); }).catch(function () {}); }
   $("appSearch").oninput = renderApps;
+
+  // ------------------------------------------------------------------ live tv
+  var TV = { section: "", q: "", timer: null };
+  try { TV.section = localStorage.getItem("lumen_tv_section") || ""; } catch (e) {}
+  function tvPost(body, done) {
+    buzz(10);
+    api("POST", "/tv", body).then(function (r) { online(true); toast(r.reply, r.ok); setTimeout(loadTv, 900); if (done) done(r); })
+      .catch(function (e) { if (e.message !== "pin") { online(false); toast("Can't reach the projector. Same Wi-Fi?", false); } });
+  }
+  function loadTv() {
+    clearTimeout(TV.timer);
+    var path = "/tv?section=" + encodeURIComponent(TV.section) + "&q=" + encodeURIComponent(TV.q);
+    api("GET", path).then(function (r) {
+      online(true); renderTv(r);
+      if (r.busy && CURRENT === "tv") TV.timer = setTimeout(loadTv, 2500);
+    }).catch(function () {});
+  }
+  function renderTv(r) {
+    if (!TV.section) TV.section = r.section || (r.sections[2] || r.sections[0]);
+    var chips = $("tvChips"); chips.innerHTML = "";
+    r.sections.forEach(function (s) {
+      var b = document.createElement("button");
+      b.className = "tvchip" + (!TV.q && s === TV.section ? " on" : "");
+      b.textContent = (s === "Favourites" ? "\u2605 " : "") + s;
+      b.onclick = function () { TV.section = s; TV.q = ""; $("tvSearch").value = ""; try { localStorage.setItem("lumen_tv_section", s); } catch (e) {} loadTv(); };
+      chips.appendChild(b);
+    });
+    var now = $("tvNow");
+    if (r.playing) { now.className = "tvnow on"; $("tvNowName").textContent = r.playing.n; } else now.className = "tvnow";
+    var on = r.channels.filter(function (c) { return c.s === 1; }).length;
+    $("tvStatus").textContent = r.error ? r.error
+      : (TV.q ? (r.busy ? "Searching every channel\u2026" : r.channels.length + " found")
+        : (r.busy ? on + " working \u00b7 checking the rest\u2026" : r.channels.length + " channels"));
+    var box = $("tvList"); box.innerHTML = "";
+    if (!r.channels.length) { box.innerHTML = '<div class="row muted">' + (r.busy ? "Loading\u2026" : "Nothing here yet") + "</div>"; return; }
+    r.channels.forEach(function (c) {
+      var row = document.createElement("div"); row.className = "row";
+      var img = document.createElement("img"); img.className = "tvlogo"; img.alt = ""; img.loading = "lazy";
+      if (c.l) img.src = c.l; img.onerror = function () { img.removeAttribute("src"); };
+      var t = document.createElement("button"); t.className = "grow"; t.style.textAlign = "left";
+      t.textContent = c.n;
+      var sm = document.createElement("small"); sm.innerHTML = (c.s === 1 ? '<span class="tvstate">\u25CF On</span> ' : "");
+      sm.appendChild(document.createTextNode(c.b || "")); t.appendChild(sm);
+      t.onclick = function () { tvPost("play=" + encodeURIComponent(c.k) + "&section=" + encodeURIComponent(TV.q ? "" : TV.section)); };
+      var f = document.createElement("button"); f.className = "tvfav" + (c.f ? " on" : ""); f.textContent = c.f ? "\u2605" : "\u2606";
+      f.setAttribute("aria-label", "Favourite");
+      f.onclick = function () { tvPost("fav=" + encodeURIComponent(c.k)); };
+      row.appendChild(img); row.appendChild(t); row.appendChild(f); box.appendChild(row);
+    });
+  }
+  $("tvSearch").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { TV.q = $("tvSearch").value.trim(); $("tvSearch").blur(); loadTv(); }
+  });
+  $("tvSearch").addEventListener("search", function () { TV.q = $("tvSearch").value.trim(); loadTv(); });
+  $("tvPrev").onclick = function () { tvPost("zap=prev"); };
+  $("tvNext").onclick = function () { tvPost("zap=next"); };
+  $("tvStop").onclick = function () { tvPost("stop=1"); };
 
   // ------------------------------------------------------------------ sound
   var PRESETS = [["off", "Off"], ["lumen", "Lumen"], ["cinema", "Cinema"], ["dialogue", "Dialogue"], ["music", "Music"], ["night", "Night"]];

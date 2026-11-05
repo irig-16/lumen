@@ -40,6 +40,11 @@ public class IptvTest {
     eq(IptvFeed.search(l, "zee news").get(0).name, "Zee News", "search zee");
     eq(IptvFeed.search(l, "sun").get(0).name, "Sun TV, Tamil", "search sun");
     eq(IptvFeed.countryOf("Foo.bar.in@SD"), "in", "dotted id"); eq(IptvFeed.countryOf("NoCountry"), "", "no cc");
+    // a favourite saved without its playlist comes back whole
+    IptvFeed.Channel back = TvCatalog.decode(TvCatalog.encode(z));
+    eq(back.name, "Zee News", "decode name"); eq(back.referrer, "https://zee.example/", "decode referrer"); eq(back.key(), z.key(), "decode key"); eq(back.quality, "576p", "decode quality");
+    IptvFeed.Channel ar2 = TvCatalog.decode(TvCatalog.encode(ar));
+    eq(ar2.alts.size(), 1, "decode alternates");
     System.out.println(pass + "/" + (pass + fail) + " passed");
   }
 }

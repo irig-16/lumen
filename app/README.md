@@ -91,13 +91,15 @@ Ten real outdoor video scenes, full screen: **ocean waves, snowy mountains, rain
 **Remote:** ◀ ▶ (or ▲ ▼) change scene · OK shows the scene's name · BACK (or any other button) returns home.
 
 ## Live TV
-Thousands of free channels, played like a TV. Open **Live TV** in the top bar, or say "live tv", "watch CNN live", "tune to Sun TV" or "news channels".
+Thousands of free channels, played like a TV. Open **Live TV** in the top bar, use the phone remote's **TV** tab, or just say "watch CNN live", "tune to Sun TV" or "news channels".
 
-- **Where the channels come from:** the [iptv-org](https://github.com/iptv-org/iptv) project, a community list of publicly available, free-to-air streams. Lumen downloads its public playlist (once a day, kept for offline starts) and plays the links. Lumen hosts no video, and adult channels are never listed.
-- **Browse** by your country (from your internet connection), any other country (**All countries…** pins up to four), or category: News, Movies, Music, Sports, Kids and more. **Search…** finds a channel by name.
-- **Watching:** ▲ ▼ or CH+/CH− change channel, number keys jump straight to one, OK shows what's on, BACK returns to the list. MENU: add to **★ Favourites**, try another link, or **open in VLC**.
-- **When a stream is down:** many channels list several links, and Lumen tries each in turn before saying the channel isn't available. Channels marked *may be region-locked* often only play inside their own country, and *not 24/7* ones are only on at certain hours. These are limits of the free streams themselves.
-- **The player** is Android's own, which plays the HLS (`.m3u8`) streams most channels use, in hardware. For anything it can't play, MENU → Open in VLC.
+- **Where the channels come from:** the [iptv-org](https://github.com/iptv-org/iptv) project, a community list of publicly available, free-to-air streams. Lumen hosts no video, and adult channels are never listed.
+- **Fast:** each country and category is its own small list, fetched only when you open it and kept for a day, so a section shows up in a second or two (instantly the next time). The full list is only fetched, in the background, for searching by name.
+- **Only working channels:** Lumen checks every channel's stream in the background (eight at a time, top of the list first) and hides the ones that don't answer. Channels show **● On** once confirmed, and a channel that fails while you watch is hidden and Lumen moves to the next one. Results are remembered for hours, so the next visit is clean straight away. **Offline channels: shown** in the side panel brings them back.
+- **Find a channel:** **Search by voice** (or the remote's search/mic key) and **Search by name** at the top of the side panel. Projectors without a speech engine can say it from the phone remote instead.
+- **Phone remote → TV tab:** the same sections as chips, search, ★ favourites, tap a channel to play it on the projector, and ▲ ▼ ■ to change channel or stop.
+- **Watching:** ▲ ▼ or CH+/CH− change channel (skipping ones known to be off), number keys jump straight to one, OK shows what's on, BACK returns to the list. MENU: ★ favourite, another link, or **open in VLC**.
+- **Limits of free streams:** channels marked *may be region-locked* often only play inside their own country, and *not 24/7* ones are only on at certain hours. Android's own player handles the HLS streams nearly every channel uses; for anything else, MENU → Open in VLC.
 
 ## Cast: screen sharing
 Open **Cast** in the top bar, tap the cast icon at the top of the phone remote, or say "screen share" / "mirror my phone". There are three ways to put something on the projector:

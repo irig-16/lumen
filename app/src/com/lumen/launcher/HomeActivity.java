@@ -4472,6 +4472,45 @@ public class HomeActivity extends Activity {
             }
 
             @Override
+            public String tvJson(String section, String query) {
+                return TvCatalog.get(HomeActivity.this).json(section, query);
+            }
+
+            @Override
+            public String[] tvSet(String form) {
+                final Map<String, String> f = TvCatalog.form(form);
+                final TvCatalog tv = TvCatalog.get(HomeActivity.this);
+                if (f.containsKey("zap")) return new String[]{"true", LiveTvActivity.control("prev".equals(f.get("zap")) ? "prev" : "next")};
+                if (f.containsKey("stop")) return new String[]{"true", LiveTvActivity.control("stop")};
+                if (f.containsKey("fav")) {
+                    IptvFeed.Channel c = tv.find(f.get("fav"));
+                    if (c == null) return new String[]{"false", "That channel isn't loaded"};
+                    tv.toggleFavourite(c);
+                    return new String[]{"true", tv.isFavourite(c) ? c.name + " added to favourites" : c.name + " removed from favourites"};
+                }
+                if (f.containsKey("play")) {
+                    final IptvFeed.Channel c = tv.find(f.get("play"));
+                    if (c == null) return new String[]{"false", "That channel isn't loaded"};
+                    main.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Intent i = new Intent(HomeActivity.this, LiveTvActivity.class)
+                                    .putExtra(LiveTvActivity.EXTRA_KEY, c.key())
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            String sec = f.get("section");
+                            if (sec != null && sec.length() > 0) i.putExtra(LiveTvActivity.EXTRA_SECTION, sec);
+                            try {
+                                startActivity(i);
+                            } catch (RuntimeException ignored) {
+                            }
+                        }
+                    });
+                    return new String[]{"true", "Playing " + c.name};
+                }
+                return new String[]{"false", "Unknown TV action"};
+            }
+
+            @Override
             public String appsJson() {
                 List<AppInfo> snapshot = allApps;
                 Set<String> hidden = store.hidden();

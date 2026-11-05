@@ -25,6 +25,7 @@ import javax.net.ServerSocketFactory;
  *   GET  /sound       → Sound Studio state as JSON
  *   POST /sound       → body "key=value&…" (preset, bass, treble, clarity, surround, loudness, night, protect)
  *   GET  /update      → update state;  POST /update → source, auto, check, install
+ *   GET  /tv?section=&q= → Live TV channels;  POST /tv → play=<key>, zap=next|prev, stop=1, fav=<key>
  *   POST /key         → body = button name (up, down, left, right, ok, back, home, menu, playpause, volup…)
  *   POST /text        → body = text typed on the phone keyboard
  *   POST /share/frame  → one JPEG of a shared laptop screen (headers X-Pin, X-Share); keep-alive
@@ -73,6 +74,12 @@ final class RemoteServer extends Thread {
 
         /** The sender stopped sharing. */
         void shareStopped(String session);
+
+        /** Live TV for the phone: sections, a section's channels (or search results with q), what's playing. */
+        String tvJson(String section, String query);
+
+        /** Live TV actions: play=<key>&section=…, zap=next|prev, stop=1, fav=<key>. Returns {ok, reply}. */
+        String[] tvSet(String form);
 
         /** A photo or video from the phone, streamed to storage. Reads exactly {@code length} bytes. Returns {ok, message}. */
         String[] receiveFile(String name, String type, long length, InputStream in, String dest) throws IOException;
@@ -276,6 +283,9 @@ final class RemoteServer extends Thread {
             sendJson(out, 200, bridge.soundJson());
         } else if ("GET".equals(method) && "/settings".equals(path)) {
             sendJson(out, 200, bridge.settingsJson());
+        } else if ("GET".equals(method) && "/tv".equals(path)) {
+            sendJson(out, 200, bridge.tvJson(params.containsKey("section") ? params.get("section") : "",
+                    params.containsKey("q") ? params.get("q") : ""));
         } else if ("GET".equals(method) && "/update".equals(path)) {
             sendJson(out, 200, bridge.updateJson());
         } else if ("POST".equals(method) && "/update/upload".equals(path)) {
@@ -302,7 +312,8 @@ final class RemoteServer extends Thread {
             if (canKeep && len <= 1000) KEEP.set(Boolean.TRUE);
             String[] r = "/key".equals(path) ? bridge.key(body.trim()) : bridge.text(body);
             sendJson(out, 200, "{\"ok\":" + r[0] + ",\"reply\":" + json(r[1]) + "}");
-        } else if ("POST".equals(method) && ("/cmd".equals(path) || "/sound".equals(path) || "/settings".equals(path) || "/update".equals(path))) {
+        } else if ("POST".equals(method) && ("/cmd".equals(path) || "/sound".equals(path) || "/settings".equals(path) || "/update".equals(path)
+                || "/tv".equals(path))) {
             int len = 0;
             try {
                 len = Integer.parseInt(headers.containsKey("content-length") ? headers.get("content-length") : "0");
@@ -317,6 +328,9 @@ final class RemoteServer extends Thread {
                 sendJson(out, 200, bridge.updateSet(text));
             } else if ("/settings".equals(path)) {
                 sendJson(out, 200, bridge.settingsSet(text));
+            } else if ("/tv".equals(path)) {
+                String[] r = bridge.tvSet(text);
+                sendJson(out, 200, "{\"ok\":" + r[0] + ",\"reply\":" + json(r[1]) + "}");
             } else {
                 String[] r = bridge.command(text);
                 sendJson(out, 200, "{\"ok\":" + r[0] + ",\"reply\":" + json(r[1]) + "}");
