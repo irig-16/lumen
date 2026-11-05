@@ -35,6 +35,9 @@ jobs:
           javac -nowarn -source 8 -target 8 -bootclasspath $AJ -cp build/classes -d /tmp/d test/DeviceTest.java
           java -cp /tmp/d:build/classes:$AJ com.lumen.launcher.DeviceTest | tee /tmp/device.txt
           ! grep -q '^FAIL' /tmp/device.txt
+          javac -nowarn -source 8 -target 8 -bootclasspath $AJ -cp build/classes -d /tmp/i test/IptvTest.java
+          java -cp /tmp/i:build/classes com.lumen.launcher.IptvTest | tee /tmp/iptv.txt
+          ! grep -q '^FAIL' /tmp/iptv.txt
 
       - name: Toolkit script syntax
         run: for f in lumenos/files/*.sh; do sh -n "$f" || exit 1; done

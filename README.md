@@ -39,6 +39,7 @@ Developed with ♥ by Radirig. Open source under the MIT licence.
 - **Heat guard**: watches CPU and GPU temperature and steps in before the projector's own switch-off (read from each chip's own thermal limits; 115 °C on the HY300)
 - **Sound Studio**, voice control (English, plus some Hinglish), a phone remote (scan a QR code), casting, **Lumen Window** living scenes
 - **Voice from the phone, on every tab**: power on and off, brightness up and down, and on/off for every setting (“turn off ad blocking”, “brightness 60”, “turn off the projector”)
+- **Live TV**: thousands of free channels from [iptv-org](https://github.com/iptv-org/iptv) by country and category, with channel zapping, favourites and "open in VLC"
 - **Over-the-air updates** from this repository, with a prompt on the home screen
 
 **LumenOS (the toolkit, `lumenos/`)**

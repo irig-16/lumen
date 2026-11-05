@@ -13,7 +13,7 @@ import android.graphics.drawable.Drawable;
 final class Glyph extends Drawable {
 
     static final int WIFI = 0, BLUETOOTH = 1, DISPLAY = 2, SETTINGS = 3, BOOST = 4, TUNE = 5, FILES = 6, MIC = 7, PHONE = 8, SPEAKER = 9, PICTURE = 10, GAMEPAD = 11, CAST = 12,
-            SUN = 13, MOON = 14, CLOUD = 15, PARTLY = 16, RAIN = 17, STORM = 18, SNOW = 19, FOG = 20;
+            SUN = 13, MOON = 14, CLOUD = 15, PARTLY = 16, RAIN = 17, STORM = 18, SNOW = 19, FOG = 20, TV = 21;
 
     private final int type;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -175,6 +175,22 @@ final class Glyph extends Drawable {
                 rf.set(7, 2, 17, 22);
                 c.drawRoundRect(rf, 2.5f, 2.5f, p);
                 c.drawLine(11, 18.5f, 13, 18.5f, p);
+                break;
+            case TV:
+                // a screen on a small stand, with an antenna: live TV
+                rf.set(3, 7, 21, 19);
+                c.drawRoundRect(rf, 2.2f, 2.2f, p);
+                c.drawLine(9, 22, 15, 22, p);
+                c.drawLine(12, 19, 12, 22, p);
+                c.drawLine(12, 7, 8, 2.5f, p);
+                c.drawLine(12, 7, 16, 2.5f, p);
+                fill();
+                path.reset();
+                path.moveTo(10.5f, 10.5f);
+                path.lineTo(15, 13);
+                path.lineTo(10.5f, 15.5f);
+                path.close();
+                c.drawPath(path, p);
                 break;
             case SUN:
                 sun(c, 12, 12, 4.5f, 7.5f, 10f);

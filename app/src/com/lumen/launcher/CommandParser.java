@@ -31,6 +31,7 @@ final class CommandParser {
         SEARCH_IN_APP, WHERE_TO_WATCH, WATCH, SEEK, WINDOW,
         DETAIL, AUTO_PICTURE, COMPARE_PICTURE, CONTINUE_WATCHING,
         POWER_OFF, POWER_ON, BRIGHTNESS, SWITCH,
+        LIVE_TV,
         HELP, UNKNOWN_APP, UNKNOWN
     }
 
@@ -60,6 +61,15 @@ final class CommandParser {
                     + (value >= 0 ? " v=" + value : "");
         }
     }
+
+    /** "news channels", "show me sports channels" → a Live TV category. */
+    private static final Pattern P_TV_SECTION = Pattern.compile(
+            "(?:show (?:me )?|open |watch |put on |go to )?(?:the )?(?:live )?(news|sports?|kids|movies?|music|documentary|entertainment|comedy|religious|cooking|business)"
+                    + " (?:tv )?channels?(?: on live tv)?");
+    /** "watch cnn live", "put on zee news channel", "tune to sun tv", "cnn live tv". */
+    private static final Pattern P_TV_CHANNEL = Pattern.compile(
+            "(?:watch|put on|play|open|switch to|change to|tune (?:in )?to|go to) (?:the )?(.+?) (?:channel|live(?: tv)?|on live tv|live stream)");
+    private static final Pattern P_TV_CHANNEL_2 = Pattern.compile("(?:tune (?:in )?to|switch to channel|change to channel) (?:the )?(.+)");
 
     /** Spoken names → likely package names, tried in order. */
     private static final Map<String, String[]> ALIASES = new HashMap<String, String[]>();
@@ -213,6 +223,21 @@ final class CommandParser {
 
         // ---- help / info
         if (t.matches("help|what can (?:i|you) (?:say|do)|commands|show commands|kya bol sakte")) return set(c, Type.HELP);
+
+        // ---- Live TV (before searches: "watch cnn live" is a channel, not a YouTube search)
+        if (t.matches("(?:open |start |show |go to |watch )?(?:the )?(?:live tv|live television|tv channels?|iptv|free tv|channel list|live channels)"
+                + "|watch (?:the )?(?:tv|television)|(?:tv|television) (?:dekhna hai|chalao)"))
+            return set(c, Type.LIVE_TV);
+        Matcher lt;
+        if ((lt = P_TV_SECTION.matcher(t)).matches()) {
+            c.target = lt.group(1);
+            return set(c, Type.LIVE_TV);
+        }
+        if ((lt = P_TV_CHANNEL.matcher(t)).matches() || (lt = P_TV_CHANNEL_2.matcher(t)).matches()) {
+            c.query = lt.group(1).trim();
+            if (c.query.length() > 1) return set(c, Type.LIVE_TV);
+            c.query = "";
+        }
         if (t.matches("(?:what(?:s| is) the )?time(?: is it)?(?: now)?|what time is it|kitne baje hai|time kya hai"))
             return set(c, Type.TIME);
         if (t.matches("(?:what(?:s| is) )?(?:the |today(?:s)? )?date(?: today)?|what day is it(?: today)?|aaj kya date hai"))

@@ -95,7 +95,7 @@ public class ParserTest {
       {"coral reef","WINDOW reef"},{"city at night","WINDOW city"},{"open kodi","OPEN Kodi"},
       {"go home","HOME"},{"open wifi settings","WIFI"},{"bluetooth","BLUETOOTH"},{"pair a speaker","BLUETOOTH"},{"open settings","SETTINGS"},
       {"display settings","DISPLAY"},{"free up memory","FREE_RAM"},{"boost","FREE_RAM"},
-      {"what time is it","TIME"},{"what's the date today","DATE"},{"how much ram is free","MEMORY"},{"how hot is the projector","TEMPERATURE"},{"projector temperature","TEMPERATURE"},{"is it overheating","TEMPERATURE"},{"what is the temperature","TEMPERATURE"},{"heat guard","TEMPERATURE"},
+      {"what time is it","TIME"},{"open live tv","LIVE_TV"},{"live tv","LIVE_TV"},{"watch tv","LIVE_TV"},{"tv channels","LIVE_TV"},{"watch cnn live","LIVE_TV cnn"},{"put on zee news channel","LIVE_TV zee news"},{"tune to sun tv","LIVE_TV sun tv"},{"news channels","LIVE_TV"},{"show me sports channels","LIVE_TV"},{"what's the date today","DATE"},{"how much ram is free","MEMORY"},{"how hot is the projector","TEMPERATURE"},{"projector temperature","TEMPERATURE"},{"is it overheating","TEMPERATURE"},{"what is the temperature","TEMPERATURE"},{"heat guard","TEMPERATURE"},
       {"add kodi to the top row","PIN_APP Kodi"},{"pin vlc","PIN_APP VLC"},{"remove netflix from favourites","UNPIN_APP Netflix"},
       {"hide photos","HIDE_APP Photos"},{"uninstall hotstar","UNINSTALL_APP Hotstar"},
       {"calm mode","MOTION_CALM"},{"turn on animations","MOTION_FULL"},{"pure black background","BG_BLACK"},{"ambient light","BG_AMBIENT"},

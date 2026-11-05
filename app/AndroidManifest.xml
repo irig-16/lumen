@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.lumen.launcher"
-    android:versionCode="23"
-    android:versionName="8.2">
+    android:versionCode="25"
+    android:versionName="8.4">
 
     <!-- Target 30: the projector's security policy only lets Android 11-level apps reach the picture processor -->
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="30" />
@@ -40,7 +40,8 @@
         android:theme="@style/LumenTheme"
         android:allowBackup="true"
         android:largeHeap="false"
-        android:hardwareAccelerated="true">
+        android:hardwareAccelerated="true"
+        android:usesCleartextTraffic="true">
 
         <!-- Lumen Imaging: the projector vendor's picture-processor client, where the firmware has it -->
         <uses-library android:name="com.softwinner.tv" android:required="false" />
@@ -71,6 +72,15 @@
             android:theme="@style/LumenTheme"
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|uiMode" />
+
+        <activity
+            android:name=".LiveTvActivity"
+            android:theme="@style/LumenTheme"
+            android:label="Live TV"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.lumen.launcher.tv"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|uiMode" />
 

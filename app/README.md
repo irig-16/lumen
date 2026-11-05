@@ -90,6 +90,15 @@ Ten real outdoor video scenes, full screen: **ocean waves, snowy mountains, rain
 
 **Remote:** ◀ ▶ (or ▲ ▼) change scene · OK shows the scene's name · BACK (or any other button) returns home.
 
+## Live TV
+Thousands of free channels, played like a TV. Open **Live TV** in the top bar, or say "live tv", "watch CNN live", "tune to Sun TV" or "news channels".
+
+- **Where the channels come from:** the [iptv-org](https://github.com/iptv-org/iptv) project, a community list of publicly available, free-to-air streams. Lumen downloads its public playlist (once a day, kept for offline starts) and plays the links. Lumen hosts no video, and adult channels are never listed.
+- **Browse** by your country (from your internet connection), any other country (**All countries…** pins up to four), or category: News, Movies, Music, Sports, Kids and more. **Search…** finds a channel by name.
+- **Watching:** ▲ ▼ or CH+/CH− change channel, number keys jump straight to one, OK shows what's on, BACK returns to the list. MENU: add to **★ Favourites**, try another link, or **open in VLC**.
+- **When a stream is down:** many channels list several links, and Lumen tries each in turn before saying the channel isn't available. Channels marked *may be region-locked* often only play inside their own country, and *not 24/7* ones are only on at certain hours. These are limits of the free streams themselves.
+- **The player** is Android's own, which plays the HLS (`.m3u8`) streams most channels use, in hardware. For anything it can't play, MENU → Open in VLC.
+
 ## Cast: screen sharing
 Open **Cast** in the top bar, tap the cast icon at the top of the phone remote, or say "screen share" / "mirror my phone". There are three ways to put something on the projector:
 

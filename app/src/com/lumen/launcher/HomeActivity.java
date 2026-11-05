@@ -726,6 +726,7 @@ public class HomeActivity extends Activity {
 
         addQuick(bar, Glyph.MIC, "Voice", "Press OK and speak a command", "voice");
         addQuick(bar, Glyph.SPEAKER, "Sound Studio", "Cinema, dialogue, music and night sound", "sound");
+        addQuick(bar, Glyph.TV, "Live TV", "Free live channels from around the world", "livetv");
         addQuick(bar, Glyph.CAST, "Cast", "Mirror a phone, share a laptop, show photos and videos", "cast");
         addQuick(bar, Glyph.PICTURE, "Screen", "Standard, Cinema, Vivid and Bright room picture presets", "screen");
         addQuick(bar, Glyph.WIFI, "Wi-Fi", "Networks and internet", Settings.ACTION_WIFI_SETTINGS);
@@ -754,6 +755,7 @@ public class HomeActivity extends Activity {
                 else if ("picture".equals(action)) openPictureLab(0);
                 else if ("screen".equals(action)) openScreen();
                 else if ("cast".equals(action)) openCast(null);
+                else if ("livetv".equals(action)) openLiveTv(null, null);
                 else if ("lumen".equals(action)) showLauncherSettings();
                 else openSettings(action);
             }
@@ -1942,6 +1944,12 @@ public class HomeActivity extends Activity {
                 openWindow(scene);
                 SceneLibrary.Scene sc = scene == null ? null : SceneLibrary.scene(scene);
                 return ok(sc != null ? sc.name : "Lumen Window");
+            }
+            case LIVE_TV: {
+                String section = c.target.length() == 0 ? null : tvSection(c.target);
+                openLiveTv(c.query.length() > 0 ? c.query : null, section);
+                return ok(c.query.length() > 0 ? "Tuning to " + c.query
+                        : section != null ? section + " channels" : "Live TV");
             }
             case CAST:
                 openCast(null);
@@ -3711,6 +3719,26 @@ public class HomeActivity extends Activity {
     }
 
     /** The Cast screen; {@code mode} null = the "how to connect" page. */
+    private void openLiveTv(String query, String section) {
+        Intent i = new Intent(this, LiveTvActivity.class);
+        if (query != null) i.putExtra(LiveTvActivity.EXTRA_QUERY, query);
+        if (section != null) i.putExtra(LiveTvActivity.EXTRA_SECTION, section);
+        try {
+            startActivity(i);
+            overridePendingTransition(android.R.anim.fade_in, 0);
+        } catch (RuntimeException e) {
+            toast("Live TV couldn't open");
+        }
+    }
+
+    /** "sport" / "movie" → iptv-org's category names ("Sports", "Movies"). */
+    private static String tvSection(String s) {
+        s = s.toLowerCase(Locale.ROOT);
+        if (s.equals("sport")) s = "sports";
+        if (s.equals("movie")) s = "movies";
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    }
+
     private void openCast(String mode) {
         if (remote == null) startRemote(); // the laptop and the phone send over the remote server
         String pin = remotePin();
