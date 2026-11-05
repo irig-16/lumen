@@ -212,7 +212,7 @@ public class HomeActivity extends Activity {
         root.setBackgroundColor(Theme.JET);
         setContentView(root);
         showSplash();
-        if (shouldPlayIntro()) playIntro();
+        introWhenVisible(0);             // intro (if due) and idle timing start once the boot logo is gone
 
         root.getViewTreeObserver().addOnGlobalFocusChangeListener(new ViewTreeObserver.OnGlobalFocusChangeListener() {
             @Override
@@ -3813,6 +3813,50 @@ public class HomeActivity extends Activity {
         });
     }
 
+    // ---------------------------------------------------------------- boot logo still on screen
+
+    /**
+     * True while the projector's boot logo / animation still covers the screen. Lumen (the home
+     * screen) starts underneath it, and on slow projectors it can stay up for minutes: the intro
+     * and Lumen Window wait for it to go instead of playing to nobody.
+     */
+    static boolean bootCovered() {
+        if ("running".equals(DeviceInfo.prop("init.svc.bootanim"))) return true;
+        if ("running".equals(DeviceInfo.prop("init.svc.bootvideo"))) return true;   // Amlogic boot video
+        return !"1".equals(DeviceInfo.prop("sys.boot_completed"));
+    }
+
+    private volatile boolean covered;
+
+    /** Plays the intro once the boot logo has gone (checks every 1.5 s for up to 20 minutes). */
+    private void introWhenVisible(final int tries) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final boolean c = bootCovered();
+                covered = c;
+                main.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isFinishing()) return;
+                        if (!c || tries >= 800) {
+                            covered = false;
+                            lastInputAt = SystemClock.elapsedRealtime();   // idle time starts when the screen is seen
+                            if (shouldPlayIntro()) playIntro();
+                        } else {
+                            main.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    introWhenVisible(tries + 1);
+                                }
+                            }, 1500);
+                        }
+                    }
+                });
+            }
+        }, "lumen-boot").start();
+    }
+
     // ---------------------------------------------------------------- Lumen Window
 
     private long lastInputAt = SystemClock.elapsedRealtime();
@@ -3826,6 +3870,11 @@ public class HomeActivity extends Activity {
         @Override
         public void run() {
             int mins = windowIdleMinutes();
+            if (covered) {                       // boot logo still up: nobody has seen the home screen yet
+                lastInputAt = SystemClock.elapsedRealtime();
+                main.postDelayed(this, 30000);
+                return;
+            }
             boolean quiet = intro == null && (voice == null || !voice.isShowing()) && resumed;
             if (mins > 0 && quiet && SystemClock.elapsedRealtime() - lastInputAt >= mins * 60000L
                     && !WindowView.library(HomeActivity.this).clips().isEmpty()) {
