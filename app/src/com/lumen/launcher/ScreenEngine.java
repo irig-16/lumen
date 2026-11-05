@@ -122,7 +122,8 @@ final class ScreenEngine {
             public void run() {
                 PictureEngine.configure(DeviceInfo.read(app));   // detection reads a few build properties: off the UI thread
                 engineUp = PictureEngine.available();
-                if (engineUp) applyNow(app, active(app), detail(app));
+                heal(app);
+                if (engineUp && trusted(app)) applyNow(app, active(app), detail(app));
             }
         });
     }
@@ -169,6 +170,170 @@ final class ScreenEngine {
         if (!on) switchTo(c, current(c));
     }
 
+    // ------------------------------------------------------------------ trust (any projector but the HY300)
+
+    /**
+     * Whether Lumen may change this projector's picture. The HY300 family is tested. On any other
+     * projector the first change is a trial: it is applied once, the projector asks "Can you see
+     * this?", and without an answer it goes back by itself (Android's brightness setting drives
+     * the light backwards or off on some projectors). "yes", "no" or "unknown".
+     */
+    static String trust(Context c) {
+        if (DeviceInfo.read(c).h713) return "yes";
+        String t = prefs(c).getString("trust", "unknown");
+        return "yes".equals(t) || "no".equals(t) ? t : "unknown";
+    }
+
+    static boolean trusted(Context c) {
+        return forcing || "yes".equals(trust(c));
+    }
+
+    static void setTrust(Context c, String t) {
+        prefs(c).edit().putString("trust", t).apply();
+    }
+
+    private static volatile boolean forcing;
+
+    /** Android picture settings Lumen may change, as they were before a trial. */
+    static final class Snapshot {
+        int bright = -1, mode = -1, night = -1, temp = -1;
+    }
+
+    static Snapshot snapshot(Context c) {
+        Snapshot s = new Snapshot();
+        ContentResolver cr = c.getContentResolver();
+        try { s.bright = Settings.System.getInt(cr, Settings.System.SCREEN_BRIGHTNESS); } catch (Exception ignored) { }
+        try { s.mode = Settings.System.getInt(cr, Settings.System.SCREEN_BRIGHTNESS_MODE); } catch (Exception ignored) { }
+        try { s.night = Settings.Secure.getInt(cr, "night_display_activated"); } catch (Exception ignored) { }
+        try { s.temp = Settings.Secure.getInt(cr, "night_display_color_temperature"); } catch (Exception ignored) { }
+        return s;
+    }
+
+    static void restore(Context c, Snapshot s) {
+        ContentResolver cr = c.getContentResolver();
+        try {
+            if (canBrightness(c) && s.bright >= 0) {
+                Settings.System.putInt(cr, Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+                Settings.System.putInt(cr, Settings.System.SCREEN_BRIGHTNESS, s.bright);
+                if (s.mode >= 0) Settings.System.putInt(cr, Settings.System.SCREEN_BRIGHTNESS_MODE, s.mode);
+            }
+        } catch (RuntimeException ignored) {
+        }
+        try {
+            if (canWarmth(c)) {
+                if (s.temp >= 0) Settings.Secure.putInt(cr, "night_display_color_temperature", s.temp);
+                Settings.Secure.putInt(cr, "night_display_activated", Math.max(0, s.night));
+            }
+        } catch (RuntimeException ignored) {
+        }
+        if (engineUp) {
+            final Context app = c.getApplicationContext();
+            ++generation;
+            worker().post(new Runnable() {
+                @Override
+                public void run() {
+                    restoreBaseline(app, false);
+                }
+            });
+        }
+    }
+
+    /**
+     * Runs one picture change as a trial on an untested projector: applies it, asks on the projector
+     * whether the picture is still visible, keeps it on "Keep", and puts everything back after
+     * 10 seconds otherwise. Returns at once; onKept runs if the user keeps it.
+     */
+    static void trial(final android.app.Activity a, final Runnable change, final Runnable onKept) {
+        final Context c = a.getApplicationContext();
+        final Snapshot before = snapshot(c);
+        forcing = true;
+        try {
+            change.run();
+        } finally {
+            forcing = false;
+        }
+        final boolean[] done = {false};
+        final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+        final boolean visible = a.hasWindowFocus() && !a.isFinishing();
+        final android.app.AlertDialog[] dlg = new android.app.AlertDialog[1];
+        final Runnable back = new Runnable() {
+            @Override
+            public void run() {
+                if (done[0]) return;
+                done[0] = true;
+                restore(c, before);
+                if (visible) setTrust(c, "no");   // someone was watching and the picture didn't survive
+                try {
+                    if (dlg[0] != null) dlg[0].dismiss();
+                } catch (RuntimeException ignored) {
+                }
+                android.widget.Toast.makeText(c, "Back to the projector's own picture. Lumen won't change brightness or warmth on this projector; use its picture menu",
+                        android.widget.Toast.LENGTH_LONG).show();
+            }
+        };
+        if (visible) {
+            try {
+                dlg[0] = new android.app.AlertDialog.Builder(a, android.R.style.Theme_Material_Dialog_Alert)
+                        .setTitle("Can you see this?")
+                        .setMessage("Lumen is trying its picture control on this projector for the first time. "
+                                + "Press Keep if the picture looks right. If the screen went dark, just wait: "
+                                + "it goes back by itself in 10 seconds.")
+                        .setPositiveButton("Keep", new android.content.DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(android.content.DialogInterface d, int w) {
+                                if (done[0]) return;
+                                done[0] = true;
+                                setTrust(c, "yes");
+                                if (onKept != null) onKept.run();
+                            }
+                        })
+                        .setNegativeButton("Go back", new android.content.DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(android.content.DialogInterface d, int w) {
+                                back.run();
+                            }
+                        })
+                        .setOnCancelListener(new android.content.DialogInterface.OnCancelListener() {
+                            @Override
+                            public void onCancel(android.content.DialogInterface d) {
+                                back.run();
+                            }
+                        })
+                        .create();
+                dlg[0].show();
+            } catch (RuntimeException ignored) {
+            }
+        }
+        h.postDelayed(back, 10000);
+    }
+
+    /**
+     * Once per projector after updating to 8.2: puts back what earlier versions changed on a
+     * projector that never passed the trial (brightness, and Cinema's night light).
+     */
+    private static void heal(Context c) {
+        SharedPreferences sp = prefs(c);
+        if (DeviceInfo.read(c).h713 || "yes".equals(trust(c)) || sp.getBoolean("healed_82", false)) return;
+        ContentResolver cr = c.getContentResolver();
+        try {
+            if (sp.contains("user_brightness") && canBrightness(c)) {
+                Settings.System.putInt(cr, Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+                Settings.System.putInt(cr, Settings.System.SCREEN_BRIGHTNESS, sp.getInt("user_brightness", 200));
+                Settings.System.putInt(cr, Settings.System.SCREEN_BRIGHTNESS_MODE, sp.getInt("user_brightness_mode", 0));
+            }
+        } catch (RuntimeException ignored) {
+        }
+        try {
+            if (canWarmth(c) && Settings.Secure.getInt(cr, "night_display_activated", 0) == 1
+                    && Settings.Secure.getInt(cr, "night_display_color_temperature", 0) == WARMTH_K[1]) {
+                Settings.Secure.putInt(cr, "night_display_activated", 0);   // Lumen's Cinema warmth
+            }
+        } catch (RuntimeException ignored) {
+        }
+        if (engineUp && sp.getString("base_modes", "").length() > 0) restoreBaseline(c, false);
+        sp.edit().putBoolean("healed_82", true).putString("preset", "standard").putString("active", "standard").commit();
+    }
+
     static boolean canBrightness(Context c) {
         try {
             return Settings.System.canWrite(c);
@@ -194,7 +359,7 @@ final class ScreenEngine {
     static String setDetail(Context c, int level) {
         level = Math.max(0, Math.min(4, level));
         prefs(c).edit().putInt("detail", level).apply();
-        if (!engineUp) return "";
+        if (!engineUp || !trusted(c)) return "";
         final Context app = c.getApplicationContext();
         final int gen = ++generation, lv = level;
         final String profile = active(c);
@@ -210,6 +375,7 @@ final class ScreenEngine {
     private static String switchTo(Context c, String key) {
         int i = index(key);
         prefs(c).edit().putString("active", PRESETS[i]).apply();
+        if (!trusted(c)) return "";   // untested projector: nothing changes outside a trial
         if (engineUp) {
             final Context app = c.getApplicationContext();
             final int gen = ++generation;
@@ -448,6 +614,9 @@ final class ScreenEngine {
         String head;
         if (!DeviceInfo.read(c).mayHavePictureProcessor()) {
             // any other projector: presets do what Android allows, and give the menu values for the rest
+            String t = trust(c);
+            if ("no".equals(t)) return DeviceInfo.read(c).chipLabel() + ": this projector's light doesn't follow Lumen's brightness, so Lumen leaves the picture alone. Set the values below in its own picture menu";
+            if ("unknown".equals(t)) return DeviceInfo.read(c).chipLabel() + ": the first picture change is a 10-second test (it goes back by itself if the screen goes dark). Set the other values below in the projector's picture menu";
             head = DeviceInfo.read(c).chipLabel() + ": Lumen sets brightness and warmth here. ";
             if (b && w) return head + "Set the other values below in the projector's own picture menu";
             return head + "Allow automatic changes for brightness and warmth, and set the values below in the projector's picture menu";

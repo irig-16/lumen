@@ -302,6 +302,7 @@
     <h2>Screen</h2>
     <div class="list" id="screens"></div>
     <p class="note" id="screenTip"></p>
+    <button class="btn ghost" id="picRetry" style="display:none">Try Lumen's picture control again</button>
     <div id="imaging">
       <div class="label">Detail</div>
       <div class="seg seg5" id="details"></div>
@@ -789,13 +790,14 @@
     b.onclick = function () { buzz(8); api("POST", "/settings", "detail=" + i).then(renderSettings).catch(function () {}); };
     $("details").appendChild(b);
   });
+  $("picRetry").onclick = function () { api("POST", "/settings", "pictrust=reset").then(function (st) { renderSettings(st); reply(st); }).catch(function () {}); };
   $("autopic").onchange = function () { api("POST", "/settings", "autopic=" + this.checked).then(renderSettings).catch(function () {}); };
   $("compare").onclick = function () { buzz(8); api("POST", "/settings", "compare=1").catch(function () {}); };
   $("cwon").onchange = function () { api("POST", "/settings", "cwon=" + this.checked).then(renderSettings).catch(function () {}); };
   SCREENS.forEach(function (p) {
     var b = document.createElement("button"); b.className = "row"; b.id = "scr_" + p[0];
     b.innerHTML = '<span class="grow"><span class="name">' + p[1] + "</span><small>" + p[2] + '</small></span><svg class="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-    b.onclick = function () { buzz(8); api("POST", "/settings", "screen=" + p[0]).then(renderSettings).catch(function () {}); };
+    b.onclick = function () { buzz(8); api("POST", "/settings", "screen=" + p[0]).then(function (st) { renderSettings(st); reply(st); }).catch(function () {}); };
     $("screens").appendChild(b);
   });
   function renderSettings(st) {
@@ -814,7 +816,10 @@
     if (st.window) renderWindow(st.window);
     if (st.screen) {
       SCREENS.forEach(function (p) { $("scr_" + p[0]).className = "row" + (st.screen === p[0] ? " sel" : ""); });
-      $("screenTip").textContent = st.engine ? "Lumen Imaging sets the projector's real picture: contrast, colour, gamma, dynamic contrast and detail."
+      $("picRetry").style.display = st.pictureTrust === "no" ? "block" : "none";
+      $("screenTip").textContent = st.pictureTrust === "no" ? "This projector's light doesn't follow Lumen's picture control, so Lumen leaves the picture alone. Set the values in the projector's own picture menu."
+        : st.pictureTrust === "unknown" ? "The first change is a 10-second test: press Keep on the projector if the picture looks right. If the screen goes dark, it comes back by itself."
+        : st.engine ? "Lumen Imaging sets the projector's real picture: contrast, colour, gamma, dynamic contrast and detail."
         : (st.screenAuto ? "Brightness and warmth change automatically. The projector shows the menu values for the rest."
         : "The projector shows the best menu values for each preset. Allow automatic changes there for brightness and warmth.");
     }

@@ -1926,15 +1926,8 @@ public class HomeActivity extends Activity {
                 return fail(ContinueStore.canWatch(this) ? "Nothing to continue yet. Start something in Netflix, Prime or YouTube"
                         : "Continue Watching needs one-time access. Run LumenOS-Update from your PC");
             }
-            case SCREEN_PRESET: {
-                String done = ScreenEngine.apply(this, c.query);
-                String name = ScreenEngine.name(c.query);
-                if (done.length() == 0) {
-                    openScreen();
-                    return ok(name + " picture: here are the projector settings for it");
-                }
-                return ok(name + " picture: " + done);
-            }
+            case SCREEN_PRESET:
+                return applyScreen(c.query);
             case WINDOW: {
                 SceneLibrary lib = WindowView.library(this);
                 if (lib.clips().isEmpty()) {
@@ -2069,11 +2062,37 @@ public class HomeActivity extends Activity {
         }
     }
 
+    private static final String TRIAL_NOTE = ": trying it once. Press Keep on the projector if the picture looks right; "
+            + "if the screen goes dark it comes back by itself in 10 seconds";
+    private static final String UNTRUSTED = "This projector's light doesn't follow Lumen's picture control, so Lumen leaves it alone. "
+            + "Use the projector's own picture menu (or try again: phone remote → Screen)";
+
+    /** A picture profile, with a one-time trial on projectors other than the HY300. */
+    private String[] applyScreen(final String key) {
+        final String name = ScreenEngine.name(key);
+        if ("unknown".equals(ScreenEngine.trust(this))) {
+            ScreenEngine.trial(this, new Runnable() {
+                @Override
+                public void run() {
+                    ScreenEngine.apply(HomeActivity.this, key);
+                }
+            }, null);
+            return ok(name + " picture" + TRIAL_NOTE);
+        }
+        String done = ScreenEngine.apply(this, key);
+        if (done.length() == 0) {
+            openScreen();
+            return ok(name + " picture: here are the projector settings for it");
+        }
+        return ok(name + " picture: " + done);
+    }
+
     /** Projector brightness in steps of 10%, or to a level. Also the light level on Allwinner projectors. */
     private String[] brightness(String how, int value) {
         if (!ScreenEngine.canBrightness(this)) {
             return fail("Lumen needs permission to change brightness: open Lumen settings → Setting up LumenOS");
         }
+        if ("no".equals(ScreenEngine.trust(this))) return fail(UNTRUSTED);
         android.content.ContentResolver cr = getContentResolver();
         int pct;
         try {
@@ -2083,21 +2102,31 @@ public class HomeActivity extends Activity {
         }
         int next = "set".equals(how) ? value : "down".equals(how) ? pct - 10 : pct + 10;
         next = Math.max(10, Math.min(100, Math.round(next / 5f) * 5));
-        try {
-            Settings.System.putInt(cr, Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
-            Settings.System.putInt(cr, Settings.System.SCREEN_BRIGHTNESS, Math.round(next * 255f / 100f));
-        } catch (RuntimeException e) {
-            return fail("The projector didn't accept the brightness change");
-        }
-        if (ScreenEngine.engine()) {   // the light level the projector's own menu sets
-            final int level = next;
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    if (PictureEngine.get(PictureEngine.BACKLIGHT) >= 0) PictureEngine.set(PictureEngine.BACKLIGHT, level);
+        final int level = next;
+        final android.content.ContentResolver fcr = cr;
+        Runnable write = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Settings.System.putInt(fcr, Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+                    Settings.System.putInt(fcr, Settings.System.SCREEN_BRIGHTNESS, Math.round(level * 255f / 100f));
+                } catch (RuntimeException ignored) {
                 }
-            }, "lumen-light").start();
+                if (ScreenEngine.engine()) {   // the light level the projector's own menu sets
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (PictureEngine.get(PictureEngine.BACKLIGHT) >= 0) PictureEngine.set(PictureEngine.BACKLIGHT, level);
+                        }
+                    }, "lumen-light").start();
+                }
+            }
+        };
+        if ("unknown".equals(ScreenEngine.trust(this))) {
+            ScreenEngine.trial(this, write, null);
+            return ok("Brightness " + next + "%" + TRIAL_NOTE);
         }
+        write.run();
         if (next == pct && !"set".equals(how)) return ok("Brightness is already at " + (next >= 100 ? "the maximum" : "the minimum"));
         return ok("Brightness " + next + "%");
     }
@@ -3355,7 +3384,8 @@ public class HomeActivity extends Activity {
         b.append(",\"power\":").append(PowerAdmin.screenOn(this));
         b.append(",\"powerReady\":").append(PowerAdmin.ready(this));
         b.append(",\"bright\":").append(brightnessPercent());
-        b.append(",\"canBright\":").append(ScreenEngine.canBrightness(this));
+        b.append(",\"canBright\":").append(ScreenEngine.canBrightness(this) && !"no".equals(ScreenEngine.trust(this)));
+        b.append(",\"pictureTrust\":\"").append(ScreenEngine.trust(this)).append('"');
         b.append(",\"adOn\":").append(SelfSetup.adBlockOn(this));
         b.append(",\"adCan\":").append(android.os.Build.VERSION.SDK_INT >= 28 && SelfSetup.hasSecureSettings(this));
         b.append(",\"heatOn\":").append(HeatGuard.get(this).enabled());
@@ -4290,9 +4320,14 @@ public class HomeActivity extends Activity {
                         if (f.containsKey("nfon")) store.setBool("nf_on", "true".equals(f.get("nfon")));
                         if (f.containsKey("pvon")) store.setBool("pv_on", "true".equals(f.get("pvon")));
                         if (f.containsKey("allon")) store.setBool("trending_all", "true".equals(f.get("allon")));
+                        if (f.containsKey("pictrust")) {
+                            ScreenEngine.setTrust(HomeActivity.this, "unknown");
+                            return settingsState().replaceFirst("\\}$", ",\"reply\":" + RemoteServer.json(
+                                    "Pick a picture profile on the Screen tab to try it once (10 seconds, then it goes back unless you press Keep)") + ",\"ok\":true}");
+                        }
                         if (f.containsKey("screen")) {
-                            ScreenEngine.apply(HomeActivity.this, f.get("screen"));
-                            if (f.size() == 1) return settingsState(); // no need to refetch trending
+                            String[] r = applyScreen(f.get("screen"));
+                            return settingsState().replaceFirst("\\}$", ",\"reply\":" + RemoteServer.json(r[1]) + ",\"ok\":" + r[0] + "}");
                         }
                         if (f.containsKey("detail") || f.containsKey("autopic") || f.containsKey("compare") || f.containsKey("cwon")) {
                             try {

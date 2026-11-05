@@ -85,6 +85,21 @@ public class ScreenActivity extends Activity {
                 chip.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        if ("unknown".equals(ScreenEngine.trust(ScreenActivity.this))) {
+                            ScreenEngine.trial(ScreenActivity.this, new Runnable() {
+                                @Override
+                                public void run() {
+                                    ScreenEngine.apply(ScreenActivity.this, key);
+                                }
+                            }, new Runnable() {
+                                @Override
+                                public void run() {
+                                    refresh();
+                                }
+                            });
+                            refresh();
+                            return;
+                        }
                         String done = ScreenEngine.apply(ScreenActivity.this, key);
                         refresh();
                         if (done.length() > 0) Toast.makeText(ScreenActivity.this, ScreenEngine.NAMES[i] + ": " + done, Toast.LENGTH_SHORT).show();
