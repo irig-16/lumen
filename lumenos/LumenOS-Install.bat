@@ -24,6 +24,7 @@ if /i not "%IP%"=="usb" "%ADB%" connect "%DEV%" >nul 2>&1
 "%ADB%" %SEL% get-state 2>nul | find "device" >nul || goto :noconn
 echo.
 echo   Installing Lumen...
+call :getapk || goto :fail
 "%ADB%" %SEL% install -r "%~dp0files\Lumen.apk"
 "%ADB%" %SEL% shell pm path com.lumen.launcher | find "package:" >nul || goto :fail
 "%ADB%" %SEL% push "%~dp0files\lumenos.sh" /data/local/tmp/lumenos.sh >nul || goto :fail
@@ -43,6 +44,17 @@ echo   All done. After the restart, Lumen plays its intro and is your home scree
 echo   A copy of the backup is in the backup folder next to this file.
 echo.
 pause
+exit /b 0
+
+:getapk
+if exist "%~dp0files\Lumen.apk" exit /b 0
+for %%F in ("%~dp0Lumen*.apk" "%~dp0..\Lumen*.apk") do if exist "%%~F" (
+  copy /y "%%~F" "%~dp0files\Lumen.apk" >nul
+  echo   Using %%~nxF
+  exit /b 0
+)
+echo   Downloading the latest Lumen from GitHub...
+curl -L --fail -o "%~dp0files\Lumen.apk" "https://raw.githubusercontent.com/irig-16/lumen/main/ota/Lumen.apk" || exit /b 1
 exit /b 0
 
 :getadb
