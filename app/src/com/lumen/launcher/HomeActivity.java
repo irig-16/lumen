@@ -727,6 +727,8 @@ public class HomeActivity extends Activity {
         addQuick(bar, Glyph.MIC, "Voice", "Press OK and speak a command", "voice");
         addQuick(bar, Glyph.SPEAKER, "Sound Studio", "Cinema, dialogue, music and night sound", "sound");
         addQuick(bar, Glyph.TV, "Live TV", "Free live channels from around the world", "livetv");
+        if (HomeKeeper.stockHomeInstalled(this))
+            addQuick(bar, Glyph.SETTINGS, "Google TV", "Google's home screen, profiles and Assistant", "googletv");
         addQuick(bar, Glyph.CAST, "Cast", "Mirror a phone, share a laptop, show photos and videos", "cast");
         addQuick(bar, Glyph.PICTURE, "Screen", "Standard, Cinema, Vivid and Bright room picture presets", "screen");
         addQuick(bar, Glyph.WIFI, "Wi-Fi", "Networks and internet", Settings.ACTION_WIFI_SETTINGS);
@@ -756,6 +758,7 @@ public class HomeActivity extends Activity {
                 else if ("screen".equals(action)) openScreen();
                 else if ("cast".equals(action)) openCast(null);
                 else if ("livetv".equals(action)) openLiveTv(null, null);
+                else if ("googletv".equals(action)) openStockHome();
                 else if ("lumen".equals(action)) showLauncherSettings();
                 else openSettings(action);
             }
@@ -1398,6 +1401,20 @@ public class HomeActivity extends Activity {
             showWeather();
             showLauncherSettings();
         } });
+        if (HomeKeeper.stockHomeInstalled(this)) {
+            final boolean keeper = HomeKeeper.enabledInLumen(this);
+            final boolean svc = HomeKeeper.serviceOn(this);
+            labels.add("Home button opens Lumen:  " + (!svc ? "needs allowing (Accessibility)" : onOff(keeper)));
+            actions.add(new Runnable() { public void run() {
+                if (!svc) {
+                    SelfSetup.askHomeKey(HomeActivity.this);
+                    return;
+                }
+                store.setBool("home_keeper", !keeper);
+                toast(keeper ? "Home goes to Google TV again" : "Home opens Lumen");
+                showLauncherSettings();
+            } });
+        }
         labels.add("24-hour clock:  " + onOff(h24));
         actions.add(new Runnable() { public void run() {
             store.setBool(S_24H, !h24);
@@ -3719,6 +3736,24 @@ public class HomeActivity extends Activity {
     }
 
     /** The Cast screen; {@code mode} null = the "how to connect" page. */
+    /** Google TV's own home, on purpose: the Home button service lets it stay for a couple of minutes. */
+    private void openStockHome() {
+        HomeKeeper.allowStockHome();
+        for (String p : HomeKeeper.STOCK_HOMES) {
+            Intent i = getPackageManager().getLaunchIntentForPackage(p);
+            if (i == null) {
+                i = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setPackage(p);
+                if (getPackageManager().resolveActivity(i, 0) == null) continue;
+            }
+            try {
+                startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                return;
+            } catch (RuntimeException ignored) {
+            }
+        }
+        toast("Google TV's home isn't available");
+    }
+
     private void openLiveTv(String query, String section) {
         Intent i = new Intent(this, LiveTvActivity.class);
         if (query != null) i.putExtra(LiveTvActivity.EXTRA_QUERY, query);

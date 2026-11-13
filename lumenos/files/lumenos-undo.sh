@@ -12,6 +12,15 @@ say() { echo "  $*"; echo "$*" >> $B/lumenos.log; }
 # LumenOS Speed (memory tuning, held-back apps), if it was applied
 [ -f $B/speed.done ] && [ -f $B/speed.sh ] && sh $B/speed.sh undo
 
+# Lumen's Home button service (Google TV)
+cur=$(settings get secure enabled_accessibility_services 2>/dev/null)
+case "$cur" in
+  *com.lumen.launcher*)
+    new=$(echo "$cur" | tr ':' '\n' | grep -v '^com.lumen.launcher/' | paste -sd: -)
+    if [ -z "$new" ]; then settings delete secure enabled_accessibility_services >/dev/null 2>&1
+    else settings put secure enabled_accessibility_services "$new"; fi ;;
+esac
+
 echo "[1/4] Bringing back removed apps"
 while read -r p; do
   [ -n "$p" ] && { cmd package install-existing --user 0 $p >/dev/null 2>&1 || pm install-existing --user 0 $p >/dev/null 2>&1; } && say "restored $p"

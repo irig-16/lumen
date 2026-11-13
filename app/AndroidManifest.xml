@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.lumen.launcher"
-    android:versionCode="26"
+    android:versionCode="27"
     android:versionName="8.4">
 
     <!-- Target 30: the projector's security policy only lets Android 11-level apps reach the picture processor -->
@@ -153,6 +153,18 @@
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
             </intent-filter>
         </receiver>
+
+        <!-- Google TV / Android TV: the Home button opens Lumen (the stock launcher stays installed) -->
+        <service
+            android:name=".HomeKeeper"
+            android:exported="true"
+            android:label="@string/home_keeper_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/home_keeper" />
+        </service>
 
         <!-- Heat guard: remembers the temperature at shutdown, to explain a heat shutdown on the next start -->
         <receiver android:name=".HeatReceiver" android:exported="true">

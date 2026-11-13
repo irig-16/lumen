@@ -90,6 +90,14 @@ Ten real outdoor video scenes, full screen: **ocean waves, snowy mountains, rain
 
 **Remote:** ◀ ▶ (or ▲ ▼) change scene · OK shows the scene's name · BACK (or any other button) returns home.
 
+## Google TV projectors (XGIMI Horizon, Chromecast-style builds)
+Google TV keeps its own home screen on the Home button, whatever app you pick as home. Lumen doesn't disable it (that can break setup, profiles and the Assistant). Instead:
+
+- **Lumen Home button** is a small accessibility service. When Google TV's home screen comes up, it opens Lumen instead. It only notices which app's window opened and reads nothing on screen. Turn it on in **Setting up LumenOS** (Lumen opens Settings → Accessibility; choose *Lumen Home button*), or LumenOS-Unlock switches it on for you. Turning it off there puts Google TV's home back exactly as it was.
+- **Google TV** in Lumen's top bar opens Google's own home on purpose (profiles, Assistant, Google TV settings) and leaves it up for a couple of minutes.
+- **Lumen settings → Home button opens Lumen** switches it on and off without visiting Accessibility.
+- **Fast projectors** (3 GB of RAM or more, not the HY300 family) keep Android's full-speed animations; the 0.5x animations are only applied on small projectors.
+
 ## Live TV
 Thousands of free channels, played like a TV. Open **Live TV** in the top bar, use the phone remote's **TV** tab, or just say "watch CNN live", "tune to Sun TV" or "news channels".
 

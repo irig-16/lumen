@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Lumen</string>
+    <string name="home_keeper_label">Lumen Home button</string>
+    <string name="home_keeper_description">Makes the remote\'s Home button open Lumen instead of the built-in Google TV home screen. It only notices when the built-in home screen opens; it reads nothing on your screen. Turn it off here to go back to Google TV\'s home.</string>
 </resources>

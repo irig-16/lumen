@@ -125,12 +125,15 @@ final class SelfSetup {
     static void applyHeld(final Context c) {
         if (!hasSecureSettings(c)) return;    // tier-1 settings live in Secure/Global
         ContentResolver cr = c.getContentResolver();
-        try {
-            setGlobalFloat(cr, Settings.Global.WINDOW_ANIMATION_SCALE, 0.5f);
-            setGlobalFloat(cr, Settings.Global.TRANSITION_ANIMATION_SCALE, 0.5f);
-            setGlobalFloat(cr, Settings.Global.ANIMATOR_DURATION_SCALE, 0.5f);
-        } catch (Throwable ignored) {
+        if (!fastDevice(c)) {      // small projectors: halve the animations. Fast ones keep the full, smooth motion.
+            try {
+                setGlobalFloat(cr, Settings.Global.WINDOW_ANIMATION_SCALE, 0.5f);
+                setGlobalFloat(cr, Settings.Global.TRANSITION_ANIMATION_SCALE, 0.5f);
+                setGlobalFloat(cr, Settings.Global.ANIMATOR_DURATION_SCALE, 0.5f);
+            } catch (Throwable ignored) {
+            }
         }
+        if (HomeKeeper.stockHomeInstalled(c) && !HomeKeeper.serviceOn(c)) HomeKeeper.enableBySettings(c);
         try {
             // Lumen Window as the screensaver, if nothing else is set.
             String comp = Settings.Secure.getString(cr, "screensaver_components");
@@ -145,6 +148,18 @@ final class SelfSetup {
         } catch (Throwable ignored) {
         }
         applyAdBlock(c, false);
+    }
+
+    /** 3 GB or more and not the HY300 family: a projector that doesn't need the lean settings. */
+    static boolean fastDevice(Context c) {
+        DeviceInfo d = DeviceInfo.read(c);
+        return !d.h713 && d.ramMb >= 2900;
+    }
+
+    /** Opens Settings → Accessibility (or turns the Home button service on directly, with the unlock). */
+    static void askHomeKey(Activity a) {
+        if (HomeKeeper.enableBySettings(a)) return;
+        if (!open(a, new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))) open(a, new Intent(Settings.ACTION_SETTINGS));
     }
 
     private static void setGlobalFloat(ContentResolver cr, String key, float want) {
@@ -297,14 +312,19 @@ final class SelfSetup {
     /** One line per item for the setup checklist. */
     static List<Item> checklist(Context c) {
         List<Item> l = new ArrayList<Item>();
-        l.add(new Item("home", "Lumen is your home screen", isDefaultHome(c), true));
+        if (HomeKeeper.stockHomeInstalled(c)) {
+            // Google TV / Android TV: the stock launcher keeps the Home button; Lumen's Home button service takes it back
+            l.add(new Item("homekey", "Home button opens Lumen", HomeKeeper.serviceOn(c), true));
+        } else {
+            l.add(new Item("home", "Lumen is your home screen", isDefaultHome(c), true));
+        }
         l.add(new Item("updates", "Install Lumen's own updates", canInstall(c), true));
         l.add(new Item("overlay", "Show the overheating warning over apps", canOverlay(c), true));
         l.add(new Item("continue", "Continue Watching (see what's playing)", continueWatchingOn(c), true));
         l.add(new Item("brightness", "Adjust brightness for picture presets", canWriteSettings(c), true));
         l.add(new Item("mic", "Voice commands", hasMic(c), true));
         boolean sec = hasSecureSettings(c);
-        l.add(new Item("smooth", "Smooth animations + system-wide ad blocking", sec, false));
+        l.add(new Item("smooth", fastDevice(c) ? "System-wide ad blocking" : "Smooth animations + system-wide ad blocking", sec, false));
         l.add(new Item("temps", "Exact CPU / GPU temperatures", hasDump(c), false));
         return l;
     }

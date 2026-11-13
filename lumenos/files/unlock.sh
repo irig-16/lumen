@@ -16,6 +16,19 @@ pm grant $L android.permission.DUMP 2>/dev/null && echo "  thermal reader: on (e
 pm grant $L android.permission.RECORD_AUDIO 2>/dev/null
 pm grant $L com.android.providers.tv.permission.READ_EPG_DATA 2>/dev/null
 dpm set-active-admin --user 0 $L/.PowerAdmin >/dev/null 2>&1 && echo "  power: on (turn the projector off by voice or from the phone)"
+# Google TV / Android TV keep their own launcher on the Home button. Lumen's "Home button" service takes
+# it back without disabling anything (turn it off in Settings > Accessibility to undo).
+if pm path com.google.android.apps.tv.launcherx >/dev/null 2>&1 || pm path com.google.android.tvlauncher >/dev/null 2>&1; then
+  hk="$L/com.lumen.launcher.HomeKeeper"
+  cur=$(settings get secure enabled_accessibility_services 2>/dev/null)
+  case "$cur" in
+    *"$hk"*) ;;
+    null|"") settings put secure enabled_accessibility_services "$hk" ;;
+    *) settings put secure enabled_accessibility_services "$cur:$hk" ;;
+  esac
+  settings put secure accessibility_enabled 1
+  echo "  Google TV: the Home button now opens Lumen (Google TV's home stays installed)"
+fi
 cmd notification allow_listener $L/$L.MediaWatch >/dev/null 2>&1 || \
   settings put secure enabled_notification_listeners "$L/$L.MediaWatch"
 cmd package set-home-activity $L/.HomeActivity >/dev/null 2>&1

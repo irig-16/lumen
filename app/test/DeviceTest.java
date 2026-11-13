@@ -47,6 +47,15 @@ public class DeviceTest {
     eq(ContinueStore.primeId("12345", ""), "", "pv none");
     eq(ContinueStore.isLink("hotstar://content/1260012345"), true, "link");
     eq(ContinueStore.isLink("1260012345"), false, "not link");
+    // Google TV home detection (HomeKeeper)
+    eq(HomeKeeper.isStockHome("com.google.android.apps.tv.launcherx"), true, "launcherx is stock home");
+    eq(HomeKeeper.isStockHome("com.netflix.ninja"), false, "netflix isn't");
+    eq(HomeKeeper.isHomeScreen("com.google.android.apps.tv.launcherx.home.HomeActivity"), true, "gtv home activity");
+    eq(HomeKeeper.isHomeScreen("com.google.android.apps.tv.launcherx.MainActivity"), true, "main activity");
+    eq(HomeKeeper.isHomeScreen("android.widget.FrameLayout"), false, "a view isn't a screen");
+    eq(HomeKeeper.isHomeScreen("com.google.android.apps.tv.launcherx.profile.ProfileSelectionActivity"), false, "profile picker left alone");
+    eq(HomeKeeper.isHomeScreen("com.google.android.apps.tv.launcherx.setup.SetupHomeActivity"), false, "setup left alone");
+    eq(DeviceInfo.classify("mt9679", "mt9679", "", "MT9679", "MediaTek", "XGIMI", "Horizon 20 Pro").chipLabel(), "MediaTek MT9679", "horizon chip");
     System.out.println(pass + "/" + (pass + fail) + " passed");
   }
 }

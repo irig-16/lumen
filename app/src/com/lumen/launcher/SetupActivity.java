@@ -136,6 +136,7 @@ public class SetupActivity extends Activity {
 
     private String actionLabel(String id) {
         if (id.equals("home")) return "Make Lumen the home screen";
+        if (id.equals("homekey")) return "Make the Home button open Lumen";
         if (id.equals("updates")) return "Allow Lumen to update itself";
         if (id.equals("overlay")) return "Allow the overheating warning";
         if (id.equals("continue")) return "Turn on Continue Watching";
@@ -155,6 +156,11 @@ public class SetupActivity extends Activity {
             return;
         }
         if ("home".equals(id)) SelfSetup.askHome(this);
+        else if ("homekey".equals(id)) {
+            SelfSetup.askHomeKey(this);
+            if (!HomeKeeper.serviceOn(this)) footer.setText("In Accessibility, choose \u201cLumen Home button\u201d and turn it on. "
+                    + "Google TV's own home stays installed: Lumen just opens when you press Home.");
+        }
         else if ("updates".equals(id)) SelfSetup.askInstall(this);
         else if ("overlay".equals(id)) SelfSetup.askOverlay(this);
         else if ("continue".equals(id)) SelfSetup.askContinueWatching(this);
